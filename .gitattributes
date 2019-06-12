@@ -1,0 +1,18 @@
+*               text=auto
+
+# Text files
+*.java          text diff=java
+*.js            text
+*.ts            text
+*.lock          text
+*.json          text
+*.properties    text
+*.sh            text eol=lf
+*.txt           text
+*.xml           text
+*.go            text
+
+# Binary
+*.class         binary
+*.jar           binary
+

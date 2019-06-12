@@ -1,0 +1,7 @@
+*.bat
+*.zip
+/tempest.exe
+tempest
+/codewind.exe
+codewind
+build.sh

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="tests"/>
+	<classpathentry kind="lib" path="lib/jakarta.websocket-api-1.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/tyrus-client-1.15.jar"/>
+	<classpathentry kind="lib" path="lib/tyrus-core-1.15.jar"/>
+	<classpathentry kind="lib" path="lib/tyrus-spi-1.15.jar"/>
+	<classpathentry kind="lib" path="lib/okhttp-3.8.1.jar"/>
+	<classpathentry kind="lib" path="lib/okio-1.13.0.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
+	<classpathentry kind="lib" path="lib/grizzly-framework-2.4.4.jar"/>
+	<classpathentry kind="lib" path="lib/grizzly-http-2.4.4.jar"/>
+	<classpathentry kind="lib" path="lib/grizzly-http-server-2.4.4.jar"/>
+	<classpathentry kind="lib" path="lib/tyrus-container-grizzly-client-1.15.jar"/>
+	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
+	<classpathentry kind="lib" path="lib/org.json_1.0.0.v201011060100.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
