@@ -243,7 +243,8 @@ public class HttpGetStatusThread extends Thread {
 			log.logSevere("Unable to parse JSON, response was: " + httpResult.response, je, null);
 			throw je;
 		}
-		if (arr == null || arr.length() == 0) {
+		
+		if (arr == null) {
 			return null;
 		}
 
