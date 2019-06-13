@@ -93,6 +93,14 @@ func processAndSendEvents(eventsToSend []ChangedFileEntry, projectID string, pos
 
 	})
 
+	// Remove any contiguous create/delete events
+	eventsToSend = removeDuplicateEventsOfType(eventsToSend, "CREATE")
+	eventsToSend = removeDuplicateEventsOfType(eventsToSend, "DELETE")
+
+	if len(eventsToSend) == 0 {
+		return
+	}
+
 	// Split the entries into requests, ensure that each request is no larger
 	// then a given size.
 	mostRecentTimestamp := eventsToSend[len(eventsToSend)-1]
@@ -107,6 +115,7 @@ func processAndSendEvents(eventsToSend []ChangedFileEntry, projectID string, pos
 
 		var currList []changedFileEntryJSON
 
+		// Remove at most X paths from currList
 		for len(currList) < 625 && len(eventsToSend) > 0 {
 			cfe := eventsToSend[0]
 			eventsToSend = eventsToSend[1:]
@@ -181,7 +190,41 @@ func generateChangeListSummaryForDebug(eventsToSend []ChangedFileEntry) string {
 	result += "]"
 
 	return result
+}
 
+/** For any given path: If there are multiple entries of the same type in a row, then remove all but the first. */
+func removeDuplicateEventsOfType(entries []ChangedFileEntry, changeType string) []ChangedFileEntry {
+
+	if changeType == "MODIFY" {
+		utils.LogSevere("Unsupported event type: MODIFY")
+		return entries
+	}
+
+	/* path -> value not used */
+	containsPath := make(map[string]bool)
+
+	for x := 0; x < len(entries); x++ {
+		cfe := entries[x]
+
+		path := cfe.path
+
+		if cfe.eventType == changeType {
+			_, exists := containsPath[path]
+			if exists {
+				utils.LogDebug("Removing duplicate event: " + cfe.toDebugString())
+				entries = append(entries[:x], entries[x+1:]...)
+				x--
+			} else {
+				containsPath[path] = true
+			}
+
+		} else {
+			delete(containsPath, path)
+		}
+
+	}
+
+	return entries
 }
 
 func compressAndConvertString(strBytes []byte) (*string, error) {
@@ -223,6 +266,11 @@ func (e *ChangedFileEntry) toJSON() *changedFileEntryJSON {
 		e.eventType,
 		e.directory,
 	}
+}
+
+func (e *ChangedFileEntry) toDebugString() string {
+
+	return e.path + " " + strconv.FormatInt(e.timestamp, 10) + " " + e.eventType + " " + strconv.FormatBool(e.directory)
 }
 
 func NewChangedFileEntry(path string, eventType string, timestamp int64, directory bool) (*ChangedFileEntry, error) {
