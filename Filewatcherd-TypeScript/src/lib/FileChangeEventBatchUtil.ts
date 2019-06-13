@@ -101,6 +101,14 @@ export class FileChangeEventBatchUtil {
 
         });
 
+        // Remove multiple CREATE or DELETE entries in a row, where applicable.
+        this.removeDuplicateEventsOfType(entries, EventType.CREATE);
+        this.removeDuplicateEventsOfType(entries, EventType.DELETE);
+
+        if (entries.length === 0) {
+            return;
+        }
+
         const mostRecentTimestamp = entries[entries.length - 1];
 
         const eventSummary = this.generateChangeListSummaryForDebug(entries);
@@ -174,4 +182,36 @@ export class FileChangeEventBatchUtil {
         return result;
 
     }
+
+    /** For any given path: If there are multiple entries of the same type in a row, then remove all but the first. */
+    private removeDuplicateEventsOfType(entries: ChangedFileEntry[], type: EventType ) {
+
+        if (type === EventType.MODIFY) {
+            log.severe("Unsupported event type: " + type.toString());
+            return;
+        }
+
+        const containsPath = new Map<string, boolean>();
+
+        for (let x = 0; x < entries.length; x++) {
+            const cfe = entries[x];
+
+            const path = cfe.path;
+
+            if (cfe.eventType === type) {
+
+                if (containsPath.has(path)) {
+                    log.debug("Removing duplicate event: " + JSON.stringify(cfe.toJson));
+                    entries.splice(x, 1);
+                    x--;
+                } else {
+                    containsPath.set(path, true);
+                }
+
+            } else {
+                containsPath.delete(path);
+            }
+        }
+    }
+
 }

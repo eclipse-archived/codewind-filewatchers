@@ -17,7 +17,10 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.zip.Deflater;
@@ -151,9 +154,16 @@ public class FileChangeEventBatchUtil {
 
 			}
 
-			// Sort ascending by timestamp, then flip to descending
+			// Sort ascending by timestamp, remove duplicate entries, then flip to
+			// descending
 			Collections.sort(entries);
+			removeDuplicateEventsOfType(entries, EventType.CREATE);
+			removeDuplicateEventsOfType(entries, EventType.DELETE);
 			Collections.reverse(entries);
+
+			if (entries.size() == 0) {
+				return;
+			}
 
 			long mostRecentEntryTimestamp = entries.get(0).getTimestamp();
 
@@ -210,6 +220,43 @@ public class FileChangeEventBatchUtil {
 			}
 
 		}
+	}
+
+	/**
+	 * For any given path: If there are multiple entries of the same type in a row,
+	 * then remove all but the first.
+	 **/
+	static final void removeDuplicateEventsOfType(List<ChangedFileEntry> changedFileList,
+			WatchEventEntry.EventType eventType) {
+
+		if (eventType == EventType.MODIFY) {
+			throw new IllegalArgumentException("Unsupported event type: " + eventType);
+		}
+
+		Map<String /* path */, Boolean /* not used */> containsPath = new HashMap<>();
+
+		for (Iterator<ChangedFileEntry> it = changedFileList.iterator(); it.hasNext();) {
+			ChangedFileEntry cfe = it.next();
+
+			String path = cfe.getPath();
+
+			if (cfe.getType() == eventType) {
+
+				if (containsPath.containsKey(path)) {
+					if (log.isDebug()) {
+						log.logDebug("Removing duplicate event: " + cfe.toString());
+					}
+					it.remove();
+				} else {
+					containsPath.put(path, true);
+				}
+
+			} else {
+				containsPath.remove(path);
+			}
+
+		}
+
 	}
 
 	@SuppressWarnings("unused")
@@ -324,6 +371,15 @@ public class FileChangeEventBatchUtil {
 			result.put("type", type.name());
 			result.put("directory", directory);
 			return result;
+		}
+
+		@Override
+		public String toString() {
+			try {
+				return toJsonObject().toString();
+			} catch (JSONException e) {
+				return path;
+			}
 		}
 
 		@Override
