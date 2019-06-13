@@ -74,7 +74,12 @@ export class HttpGetStatusThread {
 
             if (httpResult.statusCode && httpResult.statusCode === 200 && httpResult.body ) {
 
-                log.info("GET response received: " + JSON.stringify(httpResult.body));
+                // Strip EOL characters to ensure it fits on one log line.
+                let bodyVal = JSON.stringify(httpResult.body);
+                bodyVal = bodyVal.replace("\n", "");
+                bodyVal = bodyVal.replace("\r", "");
+
+                log.info("GET response received: " + bodyVal);
 
                 const w: models.IWatchedProjectListJson = httpResult.body;
                 if (w == null || w === undefined) {
@@ -147,10 +152,10 @@ export class HttpGetStatusThread {
         if (this._timer != null) {
             clearTimeout(this._timer);
         }
-        // Refresh every 60 seconds.
+        // Refresh every 120 seconds.
         this._timer = setTimeout(() => {
             this.queueStatusUpdate();
-        }, 60 * 1000);
+        }, 120 * 1000);
 
     }
 

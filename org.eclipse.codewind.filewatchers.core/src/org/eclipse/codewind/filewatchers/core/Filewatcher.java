@@ -185,6 +185,11 @@ public class Filewatcher {
 
 		Map<String /* project id */, Boolean> projectIdInHttpResult = new HashMap<>();
 		latestState.forEach((ProjectToWatch e) -> {
+
+			if (projectIdInHttpResult.containsKey(e.getProjectId())) {
+				log.logSevere("Multiple projects in the project list share the same project ID: " + e.getProjectId());
+			}
+
 			projectIdInHttpResult.put(e.getProjectId(), true);
 		});
 
@@ -489,7 +494,7 @@ public class Filewatcher {
 					JSONObject obj = new JSONObject();
 					obj.put("success", successParam);
 
-					log.logInfo("Issuing PUT request to '" + url + "' with body" + obj);
+					log.logInfo("Issuing PUT request to '" + url + "' with body " + obj);
 
 					HttpResult response = HttpUtil.put(new URI(url), obj, (e) -> {
 						e.setConnectTimeout(10 * 1000);

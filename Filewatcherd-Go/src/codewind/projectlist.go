@@ -133,7 +133,8 @@ func (projectList *ProjectList) channelListener(postOutputQueue *HttpPostOutputQ
 func (projectList *ProjectList) handleUpdateProjectListFromGetRequest(entries *models.WatchlistEntries, projectsMap map[string]*projectObject, watchService *WatchService, postOutputQueue *HttpPostOutputQueue) {
 
 	// Delete projects that are not in the entries list
-	// - We do delete first, so as not to interfere with create projects below that share the same path.
+	// - We do delete first, so as not to interfere with the 'create projects' sep  below it, 
+	//   that may share the same path.
 
 	/** project id -> true*/
 	var projectIDInHTTPResult map[string]bool
@@ -143,6 +144,12 @@ func (projectList *ProjectList) handleUpdateProjectListFromGetRequest(entries *m
 	projectIDInHTTPResult = make(map[string]bool)
 
 	for _, project := range *entries {
+		
+		_, exists := projectIDInHTTPResult[project.ProjectID]
+		if exists {
+			utils.LogSevere("Multiple projects in the project list share the same project ID: " + project.ProjectID)
+		}
+
 		projectIDInHTTPResult[project.ProjectID] = true
 	}
 

@@ -212,7 +212,7 @@ public class EclipseResourceWatchService implements IPlatformWatchService {
 		 * Returns true if matched by a filter (and therefore should be filtered out),
 		 * false otherwise.
 		 */
-		private boolean isFilteredOut(String relativePath, PathFilter filter) {
+		private static boolean isFilteredOut(String relativePath, PathFilter pathFilter) {
 
 			if (relativePath == null || relativePath.trim().length() <= 1) {
 				return false;

@@ -71,7 +71,7 @@ public class FileChangeEventBatchUtil {
 
 	private final String projectId;
 
-	private static final int TIME_TO_WAIT_FOR_NO_NEW_EVENTS_IN_MSECS = 200;
+	private static final int TIME_TO_WAIT_FOR_NO_NEW_EVENTS_IN_MSECS = 1000;
 
 	private static final int MAX_REQUEST_SIZE_IN_PATHS = 625;
 

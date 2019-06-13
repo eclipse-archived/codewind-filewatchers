@@ -16,6 +16,7 @@ import (
 	"codewind/utils"
 	"encoding/json"
 	"errors"
+	"strings"
 	"io/ioutil"
 	"net/http"
 	"crypto/tls"
@@ -52,8 +53,8 @@ func NewHttpGetStatusThread(baseURL string, projectList *ProjectList) (*HttpGetS
 
 	result.SignalStatusRefreshNeeded()
 
-	// Every 60 seconds, refresh the status
-	ticker := time.NewTicker(60 * time.Second)
+	// Every 120 seconds, refresh the status
+	ticker := time.NewTicker(120 * time.Second)
 	go func() {
 		for {
 			<-ticker.C
@@ -153,7 +154,12 @@ func sendGet(baseURL string) (*models.WatchlistEntries, error) {
 		return nil, err
 	}
 
-	utils.LogInfo("GET request completed, for " + url + ". Response: " + string(body))
+	// Strip EOL characters to ensure it fits on one log line.
+	bodyStr := string(body);
+	bodyStr = strings.ReplaceAll(bodyStr, "\r", "");
+	bodyStr = strings.ReplaceAll(bodyStr, "\n", "");
+
+	utils.LogInfo("GET request completed, for " + url + ". Response: " + bodyStr)
 
 	var entries models.WatchlistEntryList
 	err = json.Unmarshal(body, &entries)
