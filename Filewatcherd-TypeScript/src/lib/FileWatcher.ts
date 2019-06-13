@@ -82,6 +82,11 @@ export class FileWatcher {
         const projectIdInHttpResult = new Map<string, boolean>();
 
         for (const entry of projectsToWatch) {
+
+            if (projectIdInHttpResult.has(entry.projectId)) {
+                log.severe("Multiple projects in the project list share the same project ID: " + entry.projectId);
+            }
+
             projectIdInHttpResult.set(entry.projectId, true);
         }
 

@@ -72,7 +72,7 @@ func fileChangeListener(fileChanges chan []ChangedFileEntry, projectID string, p
 			if timer1 != nil {
 				timer1.Stop()
 			}
-			timer1 = time.NewTimer(500 * time.Millisecond)
+			timer1 = time.NewTimer(1000 * time.Millisecond)
 			go func(t *time.Timer) {
 				<-t.C
 				// If timer is still active, send an elapsed time
