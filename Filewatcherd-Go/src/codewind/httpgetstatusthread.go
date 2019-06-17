@@ -145,7 +145,7 @@ func sendGet(baseURL string) (*models.WatchlistEntries, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		errMsg := "Get response failed for" + url + ", response code: " + strconv.Itoa(resp.StatusCode)
+		errMsg := "Get response failed for " + url + ", response code: " + strconv.Itoa(resp.StatusCode)
 		utils.LogError(errMsg)
 		return nil, errors.New(errMsg)
 	}
@@ -153,7 +153,7 @@ func sendGet(baseURL string) (*models.WatchlistEntries, error) {
 	body, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil || body == nil {
-		utils.LogError("Get response failed for" + url + ", unable to read body")
+		utils.LogError("Get response failed for " + url + ", unable to read body")
 		return nil, err
 	}
 

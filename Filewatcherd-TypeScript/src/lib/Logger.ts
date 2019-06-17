@@ -41,6 +41,8 @@ export class LogSettings {
 
     private _fileLogger: FileLogger = null;
 
+    private _outputLogsToScreen: boolean = true;
+
     constructor() {
         this._logLevel = LogLevel.INFO;
         this._startTimeInMsecs = new Date().getTime();
@@ -80,6 +82,10 @@ export class LogSettings {
         return properDate + " [" + seconds + "." + msecsString + "] ";
     }
 
+    public setOutputLogsToScreen(outputToScreen: boolean) {
+        this._outputLogsToScreen = outputToScreen;
+    }
+
     public setFileLogger(fileLogger: FileLogger) {
         this._fileLogger = fileLogger;
     }
@@ -87,6 +93,11 @@ export class LogSettings {
     public internalGetFileLogger(): FileLogger {
         return this._fileLogger;
     }
+
+    public get outputLogsToScreen(): boolean {
+        return this._outputLogsToScreen;
+    }
+
 }
 
 export function setLogLevel(l: LogLevel) {
@@ -152,29 +163,40 @@ export function severe(str: string, err?: Error) {
 
 function printOut(entry: any) {
 
+    const outputLogsToScreen = LogSettings.getInstance().outputLogsToScreen;
+
     const fileLogger = LogSettings.getInstance().internalGetFileLogger();
     if (fileLogger != null) {
         fileLogger.log(entry);
     }
 
-    console.log(entry);
+    if (outputLogsToScreen) {
+        console.log(entry);
+    }
 
 }
 
 function printErr(entry: any) {
     const fileLogger = LogSettings.getInstance().internalGetFileLogger();
 
+    const outputLogsToScreen = LogSettings.getInstance().outputLogsToScreen;
+
     if (entry instanceof Error) {
         const entryError: Error = entry;
         const msg = entryError.name + " " + entryError.message + " " + entryError.stack;
 
-        console.error(msg);
+        if (outputLogsToScreen) {
+            console.error(msg);
+        }
         if (fileLogger != null) {
             fileLogger.log(msg);
         }
 
     } else {
-        console.error(entry);
+        // Non-error
+        if (outputLogsToScreen) {
+            console.error(entry);
+        }
         if (fileLogger != null) {
             fileLogger.log(entry);
         }
