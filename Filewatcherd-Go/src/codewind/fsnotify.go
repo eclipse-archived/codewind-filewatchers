@@ -433,7 +433,7 @@ func startWatcher(cWatcher *CodewindWatcher, path string, projectList *ProjectLi
 				if len(watchEventEntries) > 0 {
 					for _, val := range watchEventEntries {
 						utils.LogDebug("WatchEventEntry (dir): " + val.EventType + " " + val.Path + " " + strconv.FormatBool(val.IsDir))
-						projectList.ReceiveNewWatchEventEntries(val)
+						projectList.ReceiveNewWatchEventEntries(val, project)
 					}
 				}
 
@@ -447,7 +447,7 @@ func startWatcher(cWatcher *CodewindWatcher, path string, projectList *ProjectLi
 						utils.LogSevereErr("Unexpected file path conversion error", err)
 					} else {
 						utils.LogDebug("WatchEventEntry: " + changeType + " " + event.Name + " " + strconv.FormatBool(isDir) + " " + cWatcher.id)
-						projectList.ReceiveNewWatchEventEntries(newEvent)
+						projectList.ReceiveNewWatchEventEntries(newEvent, project)
 					}
 				}
 			case err, ok := <-watcher.Errors:
