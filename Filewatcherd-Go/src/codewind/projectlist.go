@@ -14,29 +14,23 @@ package main
 import (
 	"codewind/models"
 	"codewind/utils"
-	"sort"
-	"strings"
 	"time"
 )
 
 type ProjectList struct {
 	projectOperationChannel chan *projectListChannelMessage
+}
 
-	// updateProjectListFromWebSocket chan *models.WatchChangeJson
-	// updateProjectListFromGet       chan *models.WatchlistEntries
-	// receiveNewWatchEventEntries    chan *models.WatchEventEntry
-	// setWatchService                chan *WatchService
+
+type receiveNewWatchEntriesMessage struct {
+	watchEventEntry *models.WatchEventEntry
+	project *models.ProjectToWatch
 }
 
 func NewProjectList(postOutputQueue *HttpPostOutputQueue) *ProjectList {
 
 	result := &ProjectList{}
 	result.projectOperationChannel = make(chan *projectListChannelMessage)
-	// result.updateProjectListFromWebSocket = make(chan *models.WatchChangeJson)
-	// result.updateProjectListFromGet = make(chan *models.WatchlistEntries)
-	// result.receiveNewWatchEventEntries = make(chan *models.WatchEventEntry)
-	// result.setWatchService = make(chan *WatchService)
-
 	go result.channelListener(postOutputQueue)
 
 	return result
@@ -56,7 +50,7 @@ type projectListChannelMessage struct {
 	setWatchServiceMessage                 *WatchService
 	updateProjectListFromWebSocketMessage  *models.WatchChangeJson
 	updateProjectListFromGetRequestMessage *models.WatchlistEntries
-	receiveNewWatchEventEntriesMessage     *models.WatchEventEntry
+	receiveNewWatchEventEntriesMessage     *receiveNewWatchEntriesMessage
 }
 
 func (projectList *ProjectList) SetWatchService(watchService *WatchService) {
@@ -91,13 +85,19 @@ func (projectList *ProjectList) UpdateProjectListFromGetRequest(entries *models.
 	}
 }
 
-func (projectList *ProjectList) ReceiveNewWatchEventEntries(entry *models.WatchEventEntry) {
+func (projectList *ProjectList) ReceiveNewWatchEventEntries(entry *models.WatchEventEntry, project *models.ProjectToWatch) {
+
+	rnwem := &receiveNewWatchEntriesMessage  {
+		entry,
+		project,
+	}
+
 	projectList.projectOperationChannel <- &projectListChannelMessage{
 		ReceiveNewWatchEventEntriesMsg,
 		nil,
 		nil,
 		nil,
-		entry,
+		rnwem,
 	}
 }
 
@@ -123,7 +123,8 @@ func (projectList *ProjectList) channelListener(postOutputQueue *HttpPostOutputQ
 				projectList.handleUpdateProjectListFromGetRequest(projectOperationMessage.updateProjectListFromGetRequestMessage, projectsMap, watchService, postOutputQueue)
 
 			} else if projectOperationMessage.msgType == ReceiveNewWatchEventEntriesMsg {
-				handleReceiveNewWatchEventEntries(projectOperationMessage.receiveNewWatchEventEntriesMessage, projectsMap)
+				msg := projectOperationMessage.receiveNewWatchEventEntriesMessage
+				handleReceiveNewWatchEventEntries(msg.project, msg.watchEventEntry, projectsMap)
 			}
 		}
 
@@ -133,7 +134,7 @@ func (projectList *ProjectList) channelListener(postOutputQueue *HttpPostOutputQ
 func (projectList *ProjectList) handleUpdateProjectListFromGetRequest(entries *models.WatchlistEntries, projectsMap map[string]*projectObject, watchService *WatchService, postOutputQueue *HttpPostOutputQueue) {
 
 	// Delete projects that are not in the entries list
-	// - We do delete first, so as not to interfere with the 'create projects' sep  below it, 
+	// - We do delete first, so as not to interfere with the 'create projects' step below it, 
 	//   that may share the same path.
 
 	/** project id -> true*/
@@ -287,44 +288,11 @@ func processProject(projectToProcess *models.ProjectToWatch, projectsMap map[str
 
 }
 
-func handleReceiveNewWatchEventEntries(entry *models.WatchEventEntry, projectsMap map[string]*projectObject) {
 
-	utils.LogDebug("Received new watch entry: " + entry.EventType + " " + entry.Path)
+func handleReceiveNewWatchEventEntries(projectMatch *models.ProjectToWatch, entry *models.WatchEventEntry, projectsMap map[string]*projectObject) {
 
-	var projectList = make([]*models.ProjectToWatch, 0)
+	utils.LogDebug("Received new watch entry: " + entry.EventType + " " + entry.Path+" " + projectMatch.ProjectID)
 
-	for _, value := range projectsMap {
-		projectList = append(projectList, value.project)
-	}
-
-	sort.SliceStable(projectList, func(i, j int) bool {
-		// Sort descending by 'path to monitor' length
-		// (this handles the case where a parent, and it's child, are both managed by codewind).
-		return len(projectList[i].PathToMonitor) > len(projectList[j].PathToMonitor)
-	})
-
-	fullLocalPath := entry.Path
-
-	if len(strings.TrimSpace(fullLocalPath)) == 0 {
-		utils.LogInfo("Skipping empty entry with type " + entry.EventType)
-		return
-	}
-
-	var projectMatch *models.ProjectToWatch
-
-	// Find the project that contains this file
-	for _, project := range projectList {
-
-		if strings.HasPrefix(fullLocalPath, project.PathToMonitor) {
-			projectMatch = project
-		}
-
-	}
-
-	if projectMatch == nil {
-		utils.LogSevere("Could not find matching project for '" + fullLocalPath + "'")
-		return
-	}
 	filter, err := utils.NewPathFilter(projectMatch)
 	if err != nil {
 		utils.LogSevere("Could not create filter for " + projectMatch.ProjectID)
