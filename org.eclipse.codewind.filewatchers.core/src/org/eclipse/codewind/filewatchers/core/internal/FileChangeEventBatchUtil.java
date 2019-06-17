@@ -114,6 +114,110 @@ public class FileChangeEventBatchUtil {
 
 	}
 
+	/**
+	 * For any given path: If there are multiple entries of the same type in a row,
+	 * then remove all but the first.
+	 **/
+	static final void removeDuplicateEventsOfType(List<ChangedFileEntry> changedFileList,
+			WatchEventEntry.EventType eventType) {
+
+		if (eventType == EventType.MODIFY) {
+			throw new IllegalArgumentException("Unsupported event type: " + eventType);
+		}
+
+		Map<String /* path */, Boolean /* not used */> containsPath = new HashMap<>();
+
+		for (Iterator<ChangedFileEntry> it = changedFileList.iterator(); it.hasNext();) {
+			ChangedFileEntry cfe = it.next();
+
+			String path = cfe.getPath();
+
+			if (cfe.getType() == eventType) {
+
+				if (containsPath.containsKey(path)) {
+					if (log.isDebug()) {
+						log.logDebug("Removing duplicate event: " + cfe.toString());
+					}
+					it.remove();
+				} else {
+					containsPath.put(path, true);
+				}
+
+			} else {
+				containsPath.remove(path);
+			}
+
+		}
+
+	}
+
+	@SuppressWarnings("unused")
+	private final static byte[] compressString(String str) {
+
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+		DeflaterOutputStream dos = new DeflaterOutputStream(baos, new Deflater(Deflater.BEST_SPEED));
+
+		int uncompressedSize;
+		try {
+			byte[] strBytes = str.getBytes();
+			dos.write(strBytes);
+			dos.close();
+			baos.close();
+		} catch (IOException e) {
+			log.logSevere("Unable to compress string contents", e, null);
+			throw new RuntimeException(e);
+		}
+
+		byte[] result = baos.toByteArray();
+
+		return result;
+	}
+
+	/**
+	 * Output the first 256 characters of the change list, as a summary of the full
+	 * list of changes. This means the change list is not necessary a complete list,
+	 * and is only what fits into the given length.
+	 */
+	private static final String generateChangeListSummaryForDebug(List<ChangedFileEntry> entries) {
+		StringBuilder fileChangeSummaryList = new StringBuilder();
+		fileChangeSummaryList.append("[ ");
+
+		for (ChangedFileEntry cfe : entries) {
+
+			if (cfe.getType() == EventType.CREATE) {
+				fileChangeSummaryList.append("+");
+			} else if (cfe.getType() == EventType.DELETE) {
+				fileChangeSummaryList.append("-");
+			} else if (cfe.getType() == EventType.MODIFY) {
+				fileChangeSummaryList.append(">");
+			} else {
+				fileChangeSummaryList.append("?");
+			}
+
+			String filename = cfe.getPath();
+			int index = cfe.getPath().lastIndexOf("/");
+			if (index != -1) {
+				filename = filename.substring(index + 1);
+			}
+
+			fileChangeSummaryList.append(filename);
+			fileChangeSummaryList.append(" ");
+
+			if (fileChangeSummaryList.length() > 256) {
+				break;
+			}
+		}
+
+		if (fileChangeSummaryList.length() > 256) {
+			fileChangeSummaryList.append(" (...) ");
+		}
+
+		fileChangeSummaryList.append("]");
+
+		return fileChangeSummaryList.toString();
+	}
+
 	public void dispose() {
 		synchronized (lock) {
 			if (disposed_synch_lock) {
@@ -220,110 +324,6 @@ public class FileChangeEventBatchUtil {
 			}
 
 		}
-	}
-
-	/**
-	 * For any given path: If there are multiple entries of the same type in a row,
-	 * then remove all but the first.
-	 **/
-	static final void removeDuplicateEventsOfType(List<ChangedFileEntry> changedFileList,
-			WatchEventEntry.EventType eventType) {
-
-		if (eventType == EventType.MODIFY) {
-			throw new IllegalArgumentException("Unsupported event type: " + eventType);
-		}
-
-		Map<String /* path */, Boolean /* not used */> containsPath = new HashMap<>();
-
-		for (Iterator<ChangedFileEntry> it = changedFileList.iterator(); it.hasNext();) {
-			ChangedFileEntry cfe = it.next();
-
-			String path = cfe.getPath();
-
-			if (cfe.getType() == eventType) {
-
-				if (containsPath.containsKey(path)) {
-					if (log.isDebug()) {
-						log.logDebug("Removing duplicate event: " + cfe.toString());
-					}
-					it.remove();
-				} else {
-					containsPath.put(path, true);
-				}
-
-			} else {
-				containsPath.remove(path);
-			}
-
-		}
-
-	}
-
-	@SuppressWarnings("unused")
-	private final static byte[] compressString(String str) {
-
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-		DeflaterOutputStream dos = new DeflaterOutputStream(baos, new Deflater(Deflater.BEST_SPEED));
-
-		int uncompressedSize;
-		try {
-			byte[] strBytes = str.getBytes();
-			dos.write(strBytes);
-			dos.close();
-			baos.close();
-		} catch (IOException e) {
-			log.logSevere("Unable to compress string contents", e, null);
-			throw new RuntimeException(e);
-		}
-
-		byte[] result = baos.toByteArray();
-
-		return result;
-	}
-
-	/**
-	 * Output the first 256 characters of the change list, as a summary of the full
-	 * list of changes. This means the change list is not necessary a complete list,
-	 * and is only what fits into the given length.
-	 */
-	private static final String generateChangeListSummaryForDebug(List<ChangedFileEntry> entries) {
-		StringBuilder fileChangeSummaryList = new StringBuilder();
-		fileChangeSummaryList.append("[ ");
-
-		for (ChangedFileEntry cfe : entries) {
-
-			if (cfe.getType() == EventType.CREATE) {
-				fileChangeSummaryList.append("+");
-			} else if (cfe.getType() == EventType.DELETE) {
-				fileChangeSummaryList.append("-");
-			} else if (cfe.getType() == EventType.MODIFY) {
-				fileChangeSummaryList.append(">");
-			} else {
-				fileChangeSummaryList.append("?");
-			}
-
-			String filename = cfe.getPath();
-			int index = cfe.getPath().lastIndexOf("/");
-			if (index != -1) {
-				filename = filename.substring(index + 1);
-			}
-
-			fileChangeSummaryList.append(filename);
-			fileChangeSummaryList.append(" ");
-
-			if (fileChangeSummaryList.length() > 256) {
-				break;
-			}
-		}
-
-		if (fileChangeSummaryList.length() > 256) {
-			fileChangeSummaryList.append(" (...) ");
-		}
-
-		fileChangeSummaryList.append("]");
-
-		return fileChangeSummaryList.toString();
 	}
 
 	/**
