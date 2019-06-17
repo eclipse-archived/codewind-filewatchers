@@ -398,7 +398,7 @@ public class FWLogger {
 			}
 		}
 
-		@SuppressWarnings("unused")
+		/** The log entry value before it is logged to disk */
 		private static class FileLoggerEntry {
 			enum Type {
 				OUT, ERR
