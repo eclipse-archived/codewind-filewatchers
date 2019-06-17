@@ -14,13 +14,13 @@ package main
 import (
 	"codewind/models"
 	"codewind/utils"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"strings"
 	"io/ioutil"
 	"net/http"
-	"crypto/tls"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -117,7 +117,9 @@ func doGetRequest(baseURL string, failureDelay int, projectList *ProjectList) er
 		return err
 	}
 
-	projectList.UpdateProjectListFromGetRequest(result)
+	if result != nil {
+		projectList.UpdateProjectListFromGetRequest(result)
+	}
 
 	return nil
 
@@ -132,7 +134,7 @@ func sendGet(baseURL string) (*models.WatchlistEntries, error) {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-		
+
 	client := &http.Client{Transport: tr}
 
 	resp, err := client.Get(url)
@@ -143,8 +145,9 @@ func sendGet(baseURL string) (*models.WatchlistEntries, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		utils.LogError("Get response failed for" + url + ", response code: " + strconv.Itoa(resp.StatusCode))
-		return nil, nil
+		errMsg := "Get response failed for" + url + ", response code: " + strconv.Itoa(resp.StatusCode)
+		utils.LogError(errMsg)
+		return nil, errors.New(errMsg)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -155,9 +158,9 @@ func sendGet(baseURL string) (*models.WatchlistEntries, error) {
 	}
 
 	// Strip EOL characters to ensure it fits on one log line.
-	bodyStr := string(body);
-	bodyStr = strings.ReplaceAll(bodyStr, "\r", "");
-	bodyStr = strings.ReplaceAll(bodyStr, "\n", "");
+	bodyStr := string(body)
+	bodyStr = strings.ReplaceAll(bodyStr, "\r", "")
+	bodyStr = strings.ReplaceAll(bodyStr, "\n", "")
 
 	utils.LogInfo("GET request completed, for " + url + ". Response: " + bodyStr)
 
