@@ -55,6 +55,8 @@ export default async function createWatcher(codewindURL: string, logDir?: string
 
     log.LogSettings.getInstance().setFileLogger(fileLogger);
 
+    log.LogSettings.getInstance().setOutputLogsToScreen(true);
+
     const watchService = new WatchService();
 
     const clientUuid = crypto.randomBytes(16).toString("hex");

@@ -143,9 +143,9 @@ export class WatchedPath {
                 this._parent.parent.sendWatchResponseAsync(true, this._projectToWatch);
             });
 
-        this._watcher.on("change", (path, stats) => {
-            if (stats) { console.log(`File ${path} changed size to ${stats.size}`); }
-        });
+        // this._watcher.on("change", (path, stats) => {
+        //     if (stats) { console.log(`File ${path} changed size to ${stats.size}`); }
+        // });
     }
 
     public dispose() {
