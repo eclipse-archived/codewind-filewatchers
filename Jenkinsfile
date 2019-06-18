@@ -41,9 +41,7 @@ pipeline {
                 sshagent ( ['projects-storage.eclipse.org-bot-ssh']) {
                   println("Deploying codewind-filewatchers to downoad area...")
  
-                 sh '''
-                  	ssh genie.codewind@projects-storage.eclipse.org rm -rf /home/data/httpd/download.eclipse.org/codewind/codewind.filewatchers
-                  	
+                 sh '''                 	
                   	ssh genie.codewind@projects-storage.eclipse.org rm -rf /home/data/httpd/download.eclipse.org/codewind/codewind-filewatchers/snapshots
                   	ssh genie.codewind@projects-storage.eclipse.org mkdir -p /home/data/httpd/download.eclipse.org/codewind/codewind-filewatchers/snapshots
                   	scp -r ${WORKSPACE}/org.eclipse.codewind.filewatchers.core/target/org.eclipse.codewind.filewatchers*.jar genie.codewind@projects-storage.eclipse.org:/home/data/httpd/download.eclipse.org/codewind/codewind-filewatchers/snapshots
