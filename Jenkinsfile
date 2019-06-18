@@ -32,6 +32,8 @@ pipeline {
                     dir('org.eclipse.codewind.filewatchers.core') { sh 'mvn clean install' }
                     dir('org.eclipse.codewind.filewatchers.standalonenio') { sh 'mvn clean install' }
                     dir('org.eclipse.codewind.filewatchers.eclipse') { sh 'mvn clean package' }
+                    
+                    dir('Filewatcherd-TypeScript') { sh './npm-package.sh' }
                 }
             }
         } 
