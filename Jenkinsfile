@@ -5,6 +5,7 @@ pipeline {
     
     tools {
         jdk 'oracle-jdk8-latest'
+        maven 'apache-maven-latest'
     }
     
     options {
