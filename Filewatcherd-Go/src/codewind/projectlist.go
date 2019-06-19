@@ -21,10 +21,9 @@ type ProjectList struct {
 	projectOperationChannel chan *projectListChannelMessage
 }
 
-
 type receiveNewWatchEntriesMessage struct {
 	watchEventEntry *models.WatchEventEntry
-	project *models.ProjectToWatch
+	project         *models.ProjectToWatch
 }
 
 func NewProjectList(postOutputQueue *HttpPostOutputQueue) *ProjectList {
@@ -87,7 +86,7 @@ func (projectList *ProjectList) UpdateProjectListFromGetRequest(entries *models.
 
 func (projectList *ProjectList) ReceiveNewWatchEventEntries(entry *models.WatchEventEntry, project *models.ProjectToWatch) {
 
-	rnwem := &receiveNewWatchEntriesMessage  {
+	rnwem := &receiveNewWatchEntriesMessage{
 		entry,
 		project,
 	}
@@ -134,7 +133,7 @@ func (projectList *ProjectList) channelListener(postOutputQueue *HttpPostOutputQ
 func (projectList *ProjectList) handleUpdateProjectListFromGetRequest(entries *models.WatchlistEntries, projectsMap map[string]*projectObject, watchService *WatchService, postOutputQueue *HttpPostOutputQueue) {
 
 	// Delete projects that are not in the entries list
-	// - We do delete first, so as not to interfere with the 'create projects' step below it, 
+	// - We do delete first, so as not to interfere with the 'create projects' step below it,
 	//   that may share the same path.
 
 	/** project id -> true*/
@@ -145,7 +144,7 @@ func (projectList *ProjectList) handleUpdateProjectListFromGetRequest(entries *m
 	projectIDInHTTPResult = make(map[string]bool)
 
 	for _, project := range *entries {
-		
+
 		_, exists := projectIDInHTTPResult[project.ProjectID]
 		if exists {
 			utils.LogSevere("Multiple projects in the project list share the same project ID: " + project.ProjectID)
@@ -179,12 +178,12 @@ func (projectList *ProjectList) handleUpdateProjectListFromGetRequest(entries *m
 		}
 		utils.LogDebug("Calling watch service removePath with file: " + fileToMonitor)
 
-		watchService.RemoveRootPath(fileToMonitor, removedProject.project)
+		watchService.RemoveRootPath(fileToMonitor, *(removedProject.project))
 	}
 
 	// Next, create new projects, or updating existing ones
 	for _, project := range *entries {
-		processProject(&project, projectsMap, postOutputQueue, watchService)
+		processProject(project, projectsMap, postOutputQueue, watchService)
 	}
 
 }
@@ -210,20 +209,20 @@ func (projectList *ProjectList) handleUpdateProjectListFromWebSocket(webSocketUp
 			} else {
 				utils.LogDebug("Calling watch service removePath with file: " + pathToRemove)
 				if watchService != nil {
-					watchService.RemoveRootPath(pathToRemove, &projectFromWS)
+					watchService.RemoveRootPath(pathToRemove, projectFromWS)
 				} else {
 					utils.LogSevere("Watch service is not set in project list and a RemoveRootPath was missed: " + pathToRemove)
 				}
 			}
 
 		} else {
-			processProject(&projectFromWS, projectsMap, postOutputQueue, watchService)
+			processProject(projectFromWS, projectsMap, postOutputQueue, watchService)
 		}
 	}
 
 }
 
-func processProject(projectToProcess *models.ProjectToWatch, projectsMap map[string]*projectObject, postOutputQueue *HttpPostOutputQueue, watchService *WatchService) {
+func processProject(projectToProcess models.ProjectToWatch, projectsMap map[string]*projectObject, postOutputQueue *HttpPostOutputQueue, watchService *WatchService) {
 
 	currProjWatchState, exists := projectsMap[projectToProcess.ProjectID]
 	if exists {
@@ -245,8 +244,8 @@ func processProject(projectToProcess *models.ProjectToWatch, projectsMap map[str
 				utils.LogInfo("The project watch state has changed: " + oldProjectToWatch.ProjectWatchStateID + " " + projectToProcess.ProjectWatchStateID + " for project " + projectToProcess.ProjectID)
 
 				// Update the map with the value from the web socket
-				projectToProcess.ChangeType = ""
-				currProjWatchState.project = projectToProcess
+				projectToProcess.ChangeType = "" // TODO: the only non-immutable line
+				currProjWatchState.project = &projectToProcess
 
 				// We remove, then add, the watcher here, because the filters may have changed.
 
@@ -288,10 +287,9 @@ func processProject(projectToProcess *models.ProjectToWatch, projectsMap map[str
 
 }
 
-
 func handleReceiveNewWatchEventEntries(projectMatch *models.ProjectToWatch, entry *models.WatchEventEntry, projectsMap map[string]*projectObject) {
 
-	utils.LogDebug("Received new watch entry: " + entry.EventType + " " + entry.Path+" " + projectMatch.ProjectID)
+	utils.LogDebug("Received new watch entry: " + entry.EventType + " " + entry.Path + " " + projectMatch.ProjectID)
 
 	filter, err := utils.NewPathFilter(projectMatch)
 	if err != nil {
@@ -338,9 +336,9 @@ type projectObject struct {
 	eventBatchUtil *FileChangeEventBatchUtil
 }
 
-func newProjectObject(project *models.ProjectToWatch, postOutputQueue *HttpPostOutputQueue) *projectObject {
+func newProjectObject(project models.ProjectToWatch, postOutputQueue *HttpPostOutputQueue) *projectObject {
 	return &projectObject{
-		project,
+		&project,
 		NewFileChangeEventBatchUtil(project.ProjectID, postOutputQueue),
 	}
 }

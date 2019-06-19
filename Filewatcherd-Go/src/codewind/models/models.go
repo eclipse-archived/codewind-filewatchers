@@ -21,6 +21,38 @@ type ProjectToWatch struct {
 	Type                       string   `json:"type"`
 }
 
+/** This is not currently used, but I reserve the right to clone all the things at a later date. */
+func (entry *ProjectToWatch) Clone() *ProjectToWatch {
+
+	var newIgnoredFilenames []string
+
+	if entry.IgnoredFilenames != nil {
+		newIgnoredFilenames = make([]string, 0)
+		for _, val := range entry.IgnoredFilenames {
+			newIgnoredFilenames = append(newIgnoredFilenames, val)
+		}
+	}
+
+	var newIgnoredPaths []string
+
+	if entry.IgnoredPaths != nil {
+		newIgnoredPaths = make([]string, 0)
+		for _, val := range entry.IgnoredPaths {
+			newIgnoredPaths = append(newIgnoredPaths, val)
+		}
+	}
+
+	return &ProjectToWatch{
+		newIgnoredFilenames,
+		newIgnoredPaths,
+		entry.PathToMonitor,
+		entry.ProjectID,
+		entry.ChangeType,
+		entry.ProjectWatchStateID,
+		entry.Type,
+	}
+}
+
 type WatchlistEntries []ProjectToWatch
 
 type WatchlistEntryList struct {
