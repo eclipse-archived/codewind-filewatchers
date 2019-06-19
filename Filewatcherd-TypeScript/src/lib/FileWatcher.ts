@@ -46,7 +46,7 @@ export class FileWatcher {
 
     private _disposed: boolean = false;
 
-    constructor(url: string, watchService: IWatchService, clientUuid: string) {
+    constructor(urlParam: string, watchService: IWatchService, clientUuid: string) {
 
         this._clientUuid = clientUuid;
 
@@ -55,11 +55,11 @@ export class FileWatcher {
 
         this._projectsMap = new Map<string, ProjectObject>();
 
-        this._baseUrl = PathUtils.stripTrailingSlash(url);
+        this._baseUrl = PathUtils.stripTrailingSlash(urlParam);
 
         this._outputQueue = new HttpPostOutputQueue(this._baseUrl);
 
-        let calculatedWsUrl = url;
+        let calculatedWsUrl = this._baseUrl;
         calculatedWsUrl = calculatedWsUrl.replace("http://", "ws://");
         calculatedWsUrl = calculatedWsUrl.replace("https://", "wss://");
         this._wsBaseUrl = calculatedWsUrl;
@@ -82,6 +82,11 @@ export class FileWatcher {
         const projectIdInHttpResult = new Map<string, boolean>();
 
         for (const entry of projectsToWatch) {
+
+            if (projectIdInHttpResult.has(entry.projectId)) {
+                log.severe("Multiple projects in the project list share the same project ID: " + entry.projectId);
+            }
+
             projectIdInHttpResult.set(entry.projectId, true);
         }
 

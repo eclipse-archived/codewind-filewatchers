@@ -17,7 +17,10 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.zip.Deflater;
@@ -71,7 +74,7 @@ public class FileChangeEventBatchUtil {
 
 	private final String projectId;
 
-	private static final int TIME_TO_WAIT_FOR_NO_NEW_EVENTS_IN_MSECS = 200;
+	private static final int TIME_TO_WAIT_FOR_NO_NEW_EVENTS_IN_MSECS = 1000;
 
 	private static final int MAX_REQUEST_SIZE_IN_PATHS = 625;
 
@@ -111,105 +114,41 @@ public class FileChangeEventBatchUtil {
 
 	}
 
-	public void dispose() {
-		synchronized (lock) {
-			if (disposed_synch_lock) {
-				return;
-			}
-			log.logInfo("dispose() called on " + this.getClass().getSimpleName());
-			disposed_synch_lock = true;
-
-		}
-	}
-
 	/**
-	 * This logic runs after TIME_TO_WAIT_FOR_NO_NEW_EVENTS_IN_MSECS has elapsed. At
-	 * this point, the assumption is that all events that will occur HAVE occurred,
-	 * and thus all events currently in the list can be grouped together and sent.
-	 */
-	private class EventProcessingTimerTask extends TimerTask {
+	 * For any given path: If there are multiple entries of the same type in a row,
+	 * then remove all but the first.
+	 **/
+	static final void removeDuplicateEventsOfType(List<ChangedFileEntry> changedFileList,
+			WatchEventEntry.EventType eventType) {
 
-		public EventProcessingTimerTask() {
+		if (eventType == EventType.MODIFY) {
+			throw new IllegalArgumentException("Unsupported event type: " + eventType);
 		}
 
-		@Override
-		public void run() {
-			List<ChangedFileEntry> entries = new ArrayList<>();
+		Map<String /* path */, Boolean /* not used */> containsPath = new HashMap<>();
 
-			synchronized (lock) {
-				// When the timer task has triggered, we pull all the entries out of the file
-				// list and reset the timer.
-				entries.addAll(files_synch_lock);
-				files_synch_lock.clear();
+		for (Iterator<ChangedFileEntry> it = changedFileList.iterator(); it.hasNext();) {
+			ChangedFileEntry cfe = it.next();
 
-				timer_synch_lock.cancel();
-				timer_synch_lock = null;
+			String path = cfe.getPath();
 
-				if (entries.size() == 0) {
-					return;
-				}
+			if (cfe.getType() == eventType) {
 
-			}
-
-			// Sort ascending by timestamp, then flip to descending
-			Collections.sort(entries);
-			Collections.reverse(entries);
-
-			long mostRecentEntryTimestamp = entries.get(0).getTimestamp();
-
-			String changeSummary = generateChangeListSummaryForDebug(entries);
-			log.logInfo(
-					"Batch change summary for " + projectId + "@ " + mostRecentEntryTimestamp + ": " + changeSummary);
-
-			// Split the entries into requests, ensure that each request is no larger
-			// then a given size.
-			List<JSONArray> fileListsToSend = new ArrayList<>();
-			while (entries.size() > 0) {
-
-				// Remove at most MAX_REQUEST_SIZE_IN_PATHS paths from paths
-				List<JSONObject> currList = new ArrayList<>();
-				while (currList.size() < MAX_REQUEST_SIZE_IN_PATHS && entries.size() > 0) {
-
-					// Oldest entries will be at the end of the list, and we want to send those
-					// first.
-					ChangedFileEntry nextPath = entries.remove(entries.size() - 1);
-					try {
-						currList.add(nextPath.toJsonObject());
-					} catch (JSONException e1) {
-						log.logSevere("Unable to convert changed file entry to json", e1, projectId);
+				if (containsPath.containsKey(path)) {
+					if (log.isDebug()) {
+						log.logDebug("Removing duplicate event: " + cfe.toString());
 					}
+					it.remove();
+				} else {
+					containsPath.put(path, true);
 				}
 
-				if (currList.size() > 0) {
-					fileListsToSend.add(new JSONArray(currList));
-				}
-
-			}
-
-			// Compress, convert to base64, then send
-			List<String> base64Compressed = new ArrayList<>();
-			for (JSONArray array : fileListsToSend) {
-
-				String json = array.toString();
-
-				byte[] compressedData = compressString(json);
-				base64Compressed.add(Base64.getEncoder().encodeToString(compressedData));
-
-				if (DEBUG_PRINT_COMPRESSION_RATIO) {
-					int uncompressedSize = json.getBytes().length;
-					int compressedSize = compressedData.length;
-					System.out.println("Compression ratio: " + uncompressedSize + " -> " + compressedSize + " (ratio: "
-							+ (int) ((100 * compressedSize) / uncompressedSize) + ") [per path: "
-							+ (compressedSize / array.length()) + "]");
-				}
-
-			}
-
-			if (base64Compressed.size() > 0) {
-				parent.internal_sendBulkFileChanges(projectId, mostRecentEntryTimestamp, base64Compressed);
+			} else {
+				containsPath.remove(path);
 			}
 
 		}
+
 	}
 
 	@SuppressWarnings("unused")
@@ -279,6 +218,114 @@ public class FileChangeEventBatchUtil {
 		return fileChangeSummaryList.toString();
 	}
 
+	public void dispose() {
+		synchronized (lock) {
+			if (disposed_synch_lock) {
+				return;
+			}
+			log.logInfo("dispose() called on " + this.getClass().getSimpleName());
+			disposed_synch_lock = true;
+
+		}
+	}
+
+	/**
+	 * This logic runs after TIME_TO_WAIT_FOR_NO_NEW_EVENTS_IN_MSECS has elapsed. At
+	 * this point, the assumption is that all events that will occur HAVE occurred,
+	 * and thus all events currently in the list can be grouped together and sent.
+	 */
+	private class EventProcessingTimerTask extends TimerTask {
+
+		public EventProcessingTimerTask() {
+		}
+
+		@Override
+		public void run() {
+			List<ChangedFileEntry> entries = new ArrayList<>();
+
+			synchronized (lock) {
+				// When the timer task has triggered, we pull all the entries out of the file
+				// list and reset the timer.
+				entries.addAll(files_synch_lock);
+				files_synch_lock.clear();
+
+				timer_synch_lock.cancel();
+				timer_synch_lock = null;
+
+				if (entries.size() == 0) {
+					return;
+				}
+
+			}
+
+			// Sort ascending by timestamp, remove duplicate entries, then flip to
+			// descending
+			Collections.sort(entries);
+			removeDuplicateEventsOfType(entries, EventType.CREATE);
+			removeDuplicateEventsOfType(entries, EventType.DELETE);
+			Collections.reverse(entries);
+
+			if (entries.size() == 0) {
+				return;
+			}
+
+			long mostRecentEntryTimestamp = entries.get(0).getTimestamp();
+
+			String changeSummary = generateChangeListSummaryForDebug(entries);
+			log.logInfo(
+					"Batch change summary for " + projectId + "@ " + mostRecentEntryTimestamp + ": " + changeSummary);
+
+			// Split the entries into requests, ensure that each request is no larger
+			// then a given size.
+			List<JSONArray> fileListsToSend = new ArrayList<>();
+			while (entries.size() > 0) {
+
+				// Remove at most MAX_REQUEST_SIZE_IN_PATHS paths from paths
+				List<JSONObject> currList = new ArrayList<>();
+				while (currList.size() < MAX_REQUEST_SIZE_IN_PATHS && entries.size() > 0) {
+
+					// Oldest entries will be at the end of the list, and we want to send those
+					// first.
+					ChangedFileEntry nextPath = entries.remove(entries.size() - 1);
+					try {
+						currList.add(nextPath.toJsonObject());
+					} catch (JSONException e1) {
+						log.logSevere("Unable to convert changed file entry to json", e1, projectId);
+					}
+				}
+
+				if (currList.size() > 0) {
+					fileListsToSend.add(new JSONArray(currList));
+				}
+
+			}
+
+			// Compress, convert to base64, then send
+			List<String> base64Compressed = new ArrayList<>();
+			for (JSONArray array : fileListsToSend) {
+
+				String json = array.toString();
+
+				byte[] compressedData = compressString(json);
+				base64Compressed.add(Base64.getEncoder().encodeToString(compressedData));
+
+				if (DEBUG_PRINT_COMPRESSION_RATIO) {
+					int uncompressedSize = json.getBytes().length;
+					int compressedSize = compressedData.length;
+					System.out.println("Compression ratio: " + uncompressedSize + " -> " + compressedSize + " (ratio: "
+							+ (int) ((100 * compressedSize) / uncompressedSize) + ") [per path: "
+							+ (compressedSize / array.length()) + "]");
+				}
+
+			}
+
+			if (base64Compressed.size() > 0) {
+				parent.internal_sendBulkFileChanges(projectId, mostRecentEntryTimestamp, base64Compressed);
+			}
+
+		}
+	}
+
 	/**
 	 * Simple representation of a single change: the file/dir path that changed,
 	 * what type of change, and when.
@@ -324,6 +371,15 @@ public class FileChangeEventBatchUtil {
 			result.put("type", type.name());
 			result.put("directory", directory);
 			return result;
+		}
+
+		@Override
+		public String toString() {
+			try {
+				return toJsonObject().toString();
+			} catch (JSONException e) {
+				return path;
+			}
 		}
 
 		@Override

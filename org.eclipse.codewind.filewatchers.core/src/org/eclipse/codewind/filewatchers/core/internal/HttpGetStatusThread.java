@@ -52,7 +52,7 @@ public class HttpGetStatusThread extends Thread {
 
 	private final FWLogger log = FWLogger.getInstance();
 
-	private static final int REFRESH_EVERY_X_SECONDS = 60;
+	private static final int REFRESH_EVERY_X_SECONDS = 120;
 
 	/**
 	 * Synchronize on lock before accessing. This list will only ever contain zero
@@ -223,8 +223,14 @@ public class HttpGetStatusThread extends Thread {
 			}
 
 		} finally {
-			log.logInfo("GET request completed, for " + toGet + ". Response: "
-					+ (httpResult != null && httpResult.response != null ? httpResult.response.trim() : "N/A"));
+			String responseStr = (httpResult != null && httpResult.response != null ? httpResult.response.trim()
+					: "N/A");
+
+			// Make the request fit on a single log line, use a pretty printer to restore.
+			responseStr = responseStr.replace("\r", "");
+			responseStr = responseStr.replace("\n", "");
+
+			log.logInfo("GET request completed, for " + toGet + ". Response: " + responseStr);
 		}
 
 		JSONArray arr;
@@ -237,7 +243,8 @@ public class HttpGetStatusThread extends Thread {
 			log.logSevere("Unable to parse JSON, response was: " + httpResult.response, je, null);
 			throw je;
 		}
-		if (arr == null || arr.length() == 0) {
+		
+		if (arr == null) {
 			return null;
 		}
 

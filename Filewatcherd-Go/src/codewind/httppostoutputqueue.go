@@ -17,8 +17,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"crypto/tls"
 	"codewind/utils"
+	"crypto/tls"
 	"time"
 )
 
@@ -198,12 +198,18 @@ func sendPost(queue *HttpPostOutputQueue, chunk *PostQueueChunk) error {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-		
+
 	client := &http.Client{Transport: tr}
 
 	resp, err := client.Post(url, "application/json", buffer)
 	if err != nil {
 		return err
+	}
+
+	if resp == nil {
+		return errors.New("Response was nil")
+	} else if resp.StatusCode != 200 {
+		return errors.New("Response code was != 200")
 	}
 
 	defer resp.Body.Close()

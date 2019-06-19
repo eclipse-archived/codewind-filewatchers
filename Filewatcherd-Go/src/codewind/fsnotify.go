@@ -64,14 +64,14 @@ func NewWatchService(projectList *ProjectList, baseUrl string, clientUUID string
 	return result
 }
 
-func (service *WatchService) AddRootPath(path string, projectFromWS *models.ProjectToWatch) {
+func (service *WatchService) AddRootPath(path string, projectFromWS models.ProjectToWatch) {
 
 	debugStr := "Add " + projectFromWS.ProjectID + " @" + time.Now().String()
 
 	msg := &AddRemoveRootPathChannelMessage{
 		true,
 		path,
-		projectFromWS,
+		&projectFromWS,
 		debugStr,
 	}
 
@@ -84,12 +84,12 @@ func (service *WatchService) AddRootPath(path string, projectFromWS *models.Proj
 
 }
 
-func (service *WatchService) RemoveRootPath(path string, projectFromWS *models.ProjectToWatch) {
+func (service *WatchService) RemoveRootPath(path string, projectFromWS models.ProjectToWatch) {
 	debugStr := "Remove " + projectFromWS.ProjectID + " @" + time.Now().String()
 	msg := &AddRemoveRootPathChannelMessage{
 		false,
 		path,
-		projectFromWS,
+		&projectFromWS,
 		debugStr,
 	}
 
@@ -433,7 +433,7 @@ func startWatcher(cWatcher *CodewindWatcher, path string, projectList *ProjectLi
 				if len(watchEventEntries) > 0 {
 					for _, val := range watchEventEntries {
 						utils.LogDebug("WatchEventEntry (dir): " + val.EventType + " " + val.Path + " " + strconv.FormatBool(val.IsDir))
-						projectList.ReceiveNewWatchEventEntries(val)
+						projectList.ReceiveNewWatchEventEntries(val, project)
 					}
 				}
 
@@ -447,7 +447,7 @@ func startWatcher(cWatcher *CodewindWatcher, path string, projectList *ProjectLi
 						utils.LogSevereErr("Unexpected file path conversion error", err)
 					} else {
 						utils.LogDebug("WatchEventEntry: " + changeType + " " + event.Name + " " + strconv.FormatBool(isDir) + " " + cWatcher.id)
-						projectList.ReceiveNewWatchEventEntries(newEvent)
+						projectList.ReceiveNewWatchEventEntries(newEvent, project)
 					}
 				}
 			case err, ok := <-watcher.Errors:

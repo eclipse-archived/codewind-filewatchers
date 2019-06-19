@@ -87,7 +87,14 @@ func LogErrorErr(msg string, err error) {
 	if l.logLevel > ERROR {
 		return
 	}
-	l.err("! ERROR !: " + msg + " - Error:" + err.Error())
+
+	outputMsg := "! ERROR !: " + msg
+
+	if err != nil {
+		outputMsg += " - Error:" + err.Error()
+	}
+
+	l.err(outputMsg)
 }
 
 func LogSevere(msg string) {
@@ -96,8 +103,15 @@ func LogSevere(msg string) {
 }
 
 func LogSevereErr(msg string, err error) {
+
+	outputMsg := "!!! SEVERE !!!: " + msg
+
+	if err != nil {
+		outputMsg += " - Error:" + err.Error()
+	}
+
 	l := loggerInternal()
-	l.err("!!! SEVERE !!!: " + msg + " - Error:" + err.Error())
+	l.err(outputMsg)
 }
 
 func (l *MonitorLogger) out(msg string) {

@@ -14,12 +14,13 @@ package main
 import (
 	"codewind/models"
 	"codewind/utils"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"net/http"
-	"crypto/tls"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -52,8 +53,8 @@ func NewHttpGetStatusThread(baseURL string, projectList *ProjectList) (*HttpGetS
 
 	result.SignalStatusRefreshNeeded()
 
-	// Every 60 seconds, refresh the status
-	ticker := time.NewTicker(60 * time.Second)
+	// Every 120 seconds, refresh the status
+	ticker := time.NewTicker(120 * time.Second)
 	go func() {
 		for {
 			<-ticker.C
@@ -116,7 +117,9 @@ func doGetRequest(baseURL string, failureDelay int, projectList *ProjectList) er
 		return err
 	}
 
-	projectList.UpdateProjectListFromGetRequest(result)
+	if result != nil {
+		projectList.UpdateProjectListFromGetRequest(result)
+	}
 
 	return nil
 
@@ -131,7 +134,7 @@ func sendGet(baseURL string) (*models.WatchlistEntries, error) {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-		
+
 	client := &http.Client{Transport: tr}
 
 	resp, err := client.Get(url)
@@ -142,18 +145,24 @@ func sendGet(baseURL string) (*models.WatchlistEntries, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		utils.LogError("Get response failed for" + url + ", response code: " + strconv.Itoa(resp.StatusCode))
-		return nil, nil
+		errMsg := "Get response failed for " + url + ", response code: " + strconv.Itoa(resp.StatusCode)
+		utils.LogError(errMsg)
+		return nil, errors.New(errMsg)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil || body == nil {
-		utils.LogError("Get response failed for" + url + ", unable to read body")
+		utils.LogError("Get response failed for " + url + ", unable to read body")
 		return nil, err
 	}
 
-	utils.LogInfo("GET request completed, for " + url + ". Response: " + string(body))
+	// Strip EOL characters to ensure it fits on one log line.
+	bodyStr := string(body)
+	bodyStr = strings.ReplaceAll(bodyStr, "\r", "")
+	bodyStr = strings.ReplaceAll(bodyStr, "\n", "")
+
+	utils.LogInfo("GET request completed, for " + url + ". Response: " + bodyStr)
 
 	var entries models.WatchlistEntryList
 	err = json.Unmarshal(body, &entries)

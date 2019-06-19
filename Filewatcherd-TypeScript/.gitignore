@@ -17,3 +17,5 @@ dist/**/*
 
 # Ignore packaged-for-npm dir
 npm/
+# and the build result
+filewatcherd*.tar.gz
