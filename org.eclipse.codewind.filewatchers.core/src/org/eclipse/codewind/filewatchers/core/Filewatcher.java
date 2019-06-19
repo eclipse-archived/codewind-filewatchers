@@ -564,7 +564,7 @@ public class Filewatcher {
 				ProjectToWatch existingProjectToWatch = project_synch_lock;
 				if (!existingProjectToWatch.getPathToMonitor().equals(newProjectToWatch.getPathToMonitor())) {
 
-					String msg = "The path to monitor of a project cannot be changed once it set, for a particular project id";
+					String msg = "The path to monitor of a project cannot be changed once it is set, for a particular project id";
 
 					log.logSevere(msg, null, existingProjectToWatch.getProjectId());
 				}

@@ -31,7 +31,7 @@ export class ProjectObject {
 
         if (existingProjectToWatch.pathToMonitor !== newProjectToWatch.pathToMonitor ) {
 
-            const msg = "The path to monitor of a project cannot be changed once it set, for a particular project id";
+            const msg = "The pathToMonitor of a project cannot be changed once it is set, for a particular project id";
 
             log.severe(msg);
         }

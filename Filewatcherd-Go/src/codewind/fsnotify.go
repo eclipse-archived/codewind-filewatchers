@@ -64,14 +64,14 @@ func NewWatchService(projectList *ProjectList, baseUrl string, clientUUID string
 	return result
 }
 
-func (service *WatchService) AddRootPath(path string, projectFromWS *models.ProjectToWatch) {
+func (service *WatchService) AddRootPath(path string, projectFromWS models.ProjectToWatch) {
 
 	debugStr := "Add " + projectFromWS.ProjectID + " @" + time.Now().String()
 
 	msg := &AddRemoveRootPathChannelMessage{
 		true,
 		path,
-		projectFromWS,
+		&projectFromWS,
 		debugStr,
 	}
 
@@ -84,12 +84,12 @@ func (service *WatchService) AddRootPath(path string, projectFromWS *models.Proj
 
 }
 
-func (service *WatchService) RemoveRootPath(path string, projectFromWS *models.ProjectToWatch) {
+func (service *WatchService) RemoveRootPath(path string, projectFromWS models.ProjectToWatch) {
 	debugStr := "Remove " + projectFromWS.ProjectID + " @" + time.Now().String()
 	msg := &AddRemoveRootPathChannelMessage{
 		false,
 		path,
-		projectFromWS,
+		&projectFromWS,
 		debugStr,
 	}
 
