@@ -11,7 +11,6 @@
 
 import * as request from "request-promise-native";
 import { ExponentialBackoffUtil } from "./ExponentialBackoffUtil";
-import { OutputQueueEntry } from "./OutputQueueEntry";
 
 import * as log from "./Logger";
 import { PostQueueChunk } from "./PostQueueChunk";
@@ -36,6 +35,8 @@ export class HttpPostOutputQueue {
         this._activeRequests = 0;
         this._failureDelay = ExponentialBackoffUtil.getDefaultBackoffUtil(4000);
     }
+
+    // TODO: Remove OutputQueueEntry when HttpPostOutputQueueOld is removed.
 
     public async informStateChangeAsync() {
         // While there is more work, and we are below request capacity
@@ -78,6 +79,31 @@ export class HttpPostOutputQueue {
         log.info("dispose() called on HttpPostOutputQueue");
 
         this._disposed = true;
+    }
+
+    public generateDebugString(): string {
+        let result = "- ";
+
+        if (this._disposed) {
+            return result + "[disposed]";
+        }
+
+        result += "total-workers: " + HttpPostOutputQueue.MAX_ACTIVE_REQUESTS
+            + "  active-workers: " + this._activeRequests;
+
+        result += "  chunkGroupList-size: " + this._queue.length + "\n";
+
+        if (this._queue.length > 0) {
+            result += "\n";
+            result += "- HTTP Post Chunk Group List:\n";
+
+            for (const chunkGroup of this._queue) {
+                result += "  - projectID: " + chunkGroup.projectId + "  timestamp: " + chunkGroup.timestamp + "\n";
+            }
+
+        }
+
+        return result;
     }
 
     /** Remove any chunk groups that have already sent all their chunks. */

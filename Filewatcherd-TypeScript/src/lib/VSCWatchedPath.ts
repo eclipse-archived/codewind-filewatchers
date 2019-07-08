@@ -12,6 +12,8 @@ export class VSCWatchedPath {
 
     private readonly _parent: VSCodeResourceWatchService;
 
+    private readonly _pathRoot: string;
+
     constructor(pathRoot: string, ptw: ProjectToWatch, parent: VSCodeResourceWatchService) {
 
         this._pathInNormalizedForm = pathutils.normalizePath(pathRoot);
@@ -19,6 +21,8 @@ export class VSCWatchedPath {
         this._pathFilter = new PathFilter(ptw);
 
         this._parent = parent;
+
+        this._pathRoot = pathRoot;
 
     }
     public receiveFileChanges(entries: WatchEventEntry[]) {
@@ -45,6 +49,10 @@ export class VSCWatchedPath {
 
     public dispose() {
         /* Nothing to dispose */
+    }
+
+    public get pathRoot(): string {
+        return this._pathRoot;
     }
 
 }

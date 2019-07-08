@@ -100,4 +100,16 @@ export class VSCodeResourceWatchService implements IWatchService {
 
     }
 
+    public generateDebugState(): string {
+        if (this._disposed) { return "[disposed]"; }
+
+        let result = "";
+
+        for (const [key, value] of this._projIdToWatchedPaths) {
+            result += "- " + key + " | " + value.pathRoot + "\n";
+        }
+
+        return result;
+    }
+
 }
