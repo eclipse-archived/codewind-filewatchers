@@ -14,6 +14,7 @@ package utils
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -102,4 +103,14 @@ func GenerateUuid() *string {
 	result := hex.EncodeToString(u)
 
 	return &result
+}
+
+func FormatTime(t time.Time) string {
+
+	formatted := "[" + fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d.%03d",
+		t.Year(), t.Month(), t.Day(),
+		t.Hour(), t.Minute(), t.Second(), (t.Nanosecond()/1000000)) + "]"
+
+	return formatted
+
 }

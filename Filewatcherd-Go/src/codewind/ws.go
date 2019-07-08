@@ -14,12 +14,12 @@ package main
 import (
 	"codewind/models"
 	"codewind/utils"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"net/url"
 	"strconv"
 	"strings"
-	"crypto/tls"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -92,12 +92,13 @@ func startWebSocketThread(wsURLType string, hostnameAndPort string, triggerRetry
 
 	var c *websocket.Conn
 
+	// Keep trying to connect on the WebSocket thread, until success
 	for {
 
 		utils.LogInfo("Connecting to " + u.String())
 
 		dialer := &websocket.Dialer{}
-		dialer.TLSClientConfig = &tls.Config{ InsecureSkipVerify : true }
+		dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 		innerC, _, err := dialer.Dial(u.String(), nil)
 

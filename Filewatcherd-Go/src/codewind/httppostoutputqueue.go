@@ -23,8 +23,9 @@ import (
 )
 
 type HttpPostOutputQueue struct {
-	url              string
-	workInputChannel chan *PostQueueChannelMessage
+	url                 string
+	workInputChannel    chan *PostQueueChannelMessage
+	requestDebugChannel chan chan string
 }
 
 type PostQueueChannelMessage struct {
@@ -49,10 +50,11 @@ func NewHttpPostOutputQueue(url string) (*HttpPostOutputQueue, error) {
 	result := &HttpPostOutputQueue{
 		url,
 		workChannel,
+		make(chan chan string),
 	}
 
 	// Start the work manager goroutine
-	go workManagerNew(result)
+	go result.workManager()
 
 	return result, nil
 }
@@ -89,9 +91,17 @@ func (postQueue *HttpPostOutputQueue) AddToQueue(projectIDParam string, timestam
 
 }
 
-func workManagerNew(queue *HttpPostOutputQueue) {
+func (postQueue *HttpPostOutputQueue) RequestDebugMessage() chan string {
+	result := make(chan string)
 
-	utils.LogInfo("HttpPostOutputQueue thread has started for" + queue.url)
+	postQueue.requestDebugChannel <- result
+
+	return result
+}
+
+func (queue *HttpPostOutputQueue) workManager() {
+
+	utils.LogInfo("HttpPostOutputQueue thread has started for " + queue.url)
 
 	const MaxWorkers int = 3
 
@@ -113,7 +123,7 @@ func workManagerNew(queue *HttpPostOutputQueue) {
 			priorityList.AddToList(newWork.chunkGroup)
 			utils.LogDebug("Added new work to HttpPostOutputQueue")
 
-			activeWorkers = queueMoreWorkIfNeeded(priorityList, activeWorkers, MaxWorkers, &backoff, workCompleteChannel, queue)
+			activeWorkers = queue.queueMoreWorkIfNeeded(priorityList, activeWorkers, MaxWorkers, &backoff, workCompleteChannel)
 
 		case completedWork := <-workCompleteChannel:
 			activeWorkers--
@@ -130,14 +140,37 @@ func workManagerNew(queue *HttpPostOutputQueue) {
 
 			}
 
-			activeWorkers = queueMoreWorkIfNeeded(priorityList, activeWorkers, MaxWorkers, &backoff, workCompleteChannel, queue)
+			activeWorkers = queue.queueMoreWorkIfNeeded(priorityList, activeWorkers, MaxWorkers, &backoff, workCompleteChannel)
 
+		case debugResponseChannel := <-queue.requestDebugChannel:
+			result := "- active-workers: " + strconv.Itoa(activeWorkers)
+
+			chunkGroupList := priorityList.GetList()
+
+			result += "  chunkGroupList-size: " + strconv.Itoa(len(chunkGroupList)) + "\n"
+			if len(chunkGroupList) > 0 {
+				result += "\n"
+				result += "- HTTP Post Chunk Group List:\n"
+				for _, val := range chunkGroupList {
+
+					projectID := ""
+					if len(val.chunkMap) > 0 {
+						pqc, exists := val.chunkMap[0]
+						if exists && pqc != nil {
+							projectID = pqc.projectID
+						}
+					}
+					result += "  - projectID: " + projectID + "  timestamp: " + strconv.FormatInt(val.timestamp, 10) + "\n"
+
+				}
+			}
+			debugResponseChannel <- result
 		}
 	}
 
 }
 
-func queueMoreWorkIfNeeded(priorityList *ChunkGroupPriorityList, currActiveWorkers int, MaxWorkers int, backoff *utils.ExponentialBackoff, workCompleteChannel chan *PostQueueWorkResultChannel, queue *HttpPostOutputQueue) int {
+func (queue *HttpPostOutputQueue) queueMoreWorkIfNeeded(priorityList *ChunkGroupPriorityList, currActiveWorkers int, MaxWorkers int, backoff *utils.ExponentialBackoff, workCompleteChannel chan *PostQueueWorkResultChannel) int {
 
 	// While there is both more work available, and at least one free worker to do the work
 	for priorityList.Len() > 0 && currActiveWorkers < MaxWorkers {
@@ -152,7 +185,7 @@ func queueMoreWorkIfNeeded(priorityList *ChunkGroupPriorityList, currActiveWorke
 		// If there is at least one chunk waiting to send, send it
 		chunk := chunkGroup.AcquireNextChunkAvailableToSend()
 		if chunk != nil {
-			go doRequest(chunk, workCompleteChannel, backoff.GetFailureDelay(), queue)
+			go queue.doRequest(chunk, workCompleteChannel, backoff.GetFailureDelay())
 			currActiveWorkers++
 		} else {
 			break
@@ -164,13 +197,13 @@ func queueMoreWorkIfNeeded(priorityList *ChunkGroupPriorityList, currActiveWorke
 
 }
 
-func doRequest(work *PostQueueChunk, workCompleteChannel chan *PostQueueWorkResultChannel, failureDelay int, queue *HttpPostOutputQueue) {
+func (queue *HttpPostOutputQueue) doRequest(work *PostQueueChunk, workCompleteChannel chan *PostQueueWorkResultChannel, failureDelay int) {
 
 	// Wait before issuing a request, due to a previous failed request
 	if failureDelay > 0 {
 		time.Sleep(time.Duration(failureDelay) * time.Millisecond)
 	}
-	err := sendPost(queue, work)
+	err := queue.sendPost(work)
 
 	utils.LogDebug("sendPost complete")
 
@@ -187,7 +220,7 @@ func doRequest(work *PostQueueChunk, workCompleteChannel chan *PostQueueWorkResu
 	utils.LogDebug("Work signaled on workCompleteChannel in HTTP post queue")
 }
 
-func sendPost(queue *HttpPostOutputQueue, chunk *PostQueueChunk) error {
+func (queue *HttpPostOutputQueue) sendPost(chunk *PostQueueChunk) error {
 
 	buffer := bytes.NewBufferString("{\"msg\" : \"" + chunk.base64Compressed + "\"}")
 

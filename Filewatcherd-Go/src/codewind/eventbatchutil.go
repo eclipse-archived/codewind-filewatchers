@@ -21,19 +21,25 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 type FileChangeEventBatchUtil struct {
-	filesChangesChan chan []ChangedFileEntry
+	filesChangesChan      chan []ChangedFileEntry
+	debugState_synch_lock string // Lock 'lock' before reading/writing this
+	lock                  *sync.Mutex
 }
 
 func NewFileChangeEventBatchUtil(projectID string, postOutputQueue *HttpPostOutputQueue) *FileChangeEventBatchUtil {
 
-	result := &FileChangeEventBatchUtil{}
-	result.filesChangesChan = make(chan []ChangedFileEntry)
+	result := &FileChangeEventBatchUtil{
+		filesChangesChan:      make(chan []ChangedFileEntry),
+		debugState_synch_lock: "",
+		lock:                  &sync.Mutex{},
+	}
 
-	go fileChangeListener(result.filesChangesChan, projectID, postOutputQueue)
+	go result.fileChangeListener(projectID, postOutputQueue)
 
 	return result
 }
@@ -42,7 +48,15 @@ func (e *FileChangeEventBatchUtil) AddChangedFiles(changedFileEntries []ChangedF
 	e.filesChangesChan <- changedFileEntries
 }
 
-func fileChangeListener(fileChanges chan []ChangedFileEntry, projectID string, postOutputQueue *HttpPostOutputQueue) {
+func (e *FileChangeEventBatchUtil) RequestDebugMessage() string {
+
+	e.lock.Lock()
+	defer e.lock.Unlock()
+
+	return e.debugState_synch_lock
+}
+
+func (e *FileChangeEventBatchUtil) fileChangeListener(projectID string, postOutputQueue *HttpPostOutputQueue) {
 
 	utils.LogInfo("EventBatchUtil listener started for " + projectID)
 
@@ -50,12 +64,19 @@ func fileChangeListener(fileChanges chan []ChangedFileEntry, projectID string, p
 
 	timerChan := make(chan *time.Timer)
 
+	debugTimeSinceLastFileChange := time.Now()
+
+	debugTimeSinceLastTimerReceived := time.Now()
+
 	var timer1 *time.Timer
 
 	for {
 
 		select {
 		case timerReceived := <-timerChan:
+			debugTimeSinceLastTimerReceived = time.Now()
+			e.updateDebugState(debugTimeSinceLastFileChange, debugTimeSinceLastTimerReceived)
+
 			// Only process a timer elapsed event if the event is for the timer that is currently active (prevent race condition)
 			if timer1 != nil && timer1 == timerReceived {
 
@@ -66,7 +87,9 @@ func fileChangeListener(fileChanges chan []ChangedFileEntry, projectID string, p
 				timer1 = nil
 			}
 
-		case receivedFileChanges := <-fileChanges:
+		case receivedFileChanges := <-e.filesChangesChan:
+			debugTimeSinceLastFileChange = time.Now()
+			e.updateDebugState(debugTimeSinceLastFileChange, debugTimeSinceLastTimerReceived)
 
 			eventsReceivedSinceLastBatch = append(eventsReceivedSinceLastBatch, receivedFileChanges...)
 			if timer1 != nil {
@@ -81,8 +104,18 @@ func fileChangeListener(fileChanges chan []ChangedFileEntry, projectID string, p
 				// }
 			}(timer1)
 		}
+
 	} // end for
 
+}
+
+func (e *FileChangeEventBatchUtil) updateDebugState(debugTimeSinceLastFileChange time.Time, debugTimeSinceLastTimerReceived time.Time) {
+	result := "lastFileChangeSeen: " + utils.FormatTime(debugTimeSinceLastFileChange)
+	result += "   timeSinceLastTimer: " + utils.FormatTime(debugTimeSinceLastTimerReceived) + "\n"
+
+	e.lock.Lock()
+	e.debugState_synch_lock = result
+	e.lock.Unlock()
 }
 
 func processAndSendEvents(eventsToSend []ChangedFileEntry, projectID string, postOutputQueue *HttpPostOutputQueue) {

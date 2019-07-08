@@ -14,6 +14,7 @@ package main
 import (
 	"codewind/models"
 	"codewind/utils"
+	"strings"
 	"time"
 )
 
@@ -38,10 +39,11 @@ func NewProjectList(postOutputQueue *HttpPostOutputQueue) *ProjectList {
 type projectListMessageType int
 
 const (
-	SetWatchServiceMsg = iota + 1
-	UpdateProjectListFromWebSocketMsg
-	UpdateProjectListFromGetRequestMsg
-	ReceiveNewWatchEventEntriesMsg
+	setWatchServiceMsg = iota + 1
+	updateProjectListFromWebSocketMsg
+	updateProjectListFromGetRequestMsg
+	receiveNewWatchEventEntriesMsg
+	requestDebugMsg
 )
 
 type projectListChannelMessage struct {
@@ -50,38 +52,40 @@ type projectListChannelMessage struct {
 	updateProjectListFromWebSocketMessage  *models.WatchChangeJson
 	updateProjectListFromGetRequestMessage *models.WatchlistEntries
 	receiveNewWatchEventEntriesMessage     *receiveNewWatchEntriesMessage
+	requestDebugMessage                    chan string
 }
 
 func (projectList *ProjectList) SetWatchService(watchService *WatchService) {
 
 	projectList.projectOperationChannel <- &projectListChannelMessage{
-		SetWatchServiceMsg,
-		watchService,
-		nil,
-		nil,
-		nil,
+		msgType:                setWatchServiceMsg,
+		setWatchServiceMessage: watchService,
 	}
 
 }
 
 func (projectList *ProjectList) UpdateProjectListFromWebSocket(watchChange *models.WatchChangeJson) {
 	projectList.projectOperationChannel <- &projectListChannelMessage{
-		UpdateProjectListFromWebSocketMsg,
-		nil,
-		watchChange,
-		nil,
-		nil,
+		msgType:                               updateProjectListFromWebSocketMsg,
+		updateProjectListFromWebSocketMessage: watchChange,
 	}
 }
 
 func (projectList *ProjectList) UpdateProjectListFromGetRequest(entries *models.WatchlistEntries) {
 	projectList.projectOperationChannel <- &projectListChannelMessage{
-		UpdateProjectListFromGetRequestMsg,
-		nil,
-		nil,
-		entries,
-		nil,
+		msgType:                                updateProjectListFromGetRequestMsg,
+		updateProjectListFromGetRequestMessage: entries,
 	}
+}
+
+func (projectList *ProjectList) RequestDebugMessage() chan string {
+	result := make(chan string)
+	projectList.projectOperationChannel <- &projectListChannelMessage{
+		msgType:             requestDebugMsg,
+		requestDebugMessage: result,
+	}
+	return result
+
 }
 
 func (projectList *ProjectList) ReceiveNewWatchEventEntries(entry *models.WatchEventEntry, project *models.ProjectToWatch) {
@@ -92,11 +96,8 @@ func (projectList *ProjectList) ReceiveNewWatchEventEntries(entry *models.WatchE
 	}
 
 	projectList.projectOperationChannel <- &projectListChannelMessage{
-		ReceiveNewWatchEventEntriesMsg,
-		nil,
-		nil,
-		nil,
-		rnwem,
+		msgType:                            receiveNewWatchEventEntriesMsg,
+		receiveNewWatchEventEntriesMessage: rnwem,
 	}
 }
 
@@ -112,22 +113,55 @@ func (projectList *ProjectList) channelListener(postOutputQueue *HttpPostOutputQ
 
 		select {
 		case projectOperationMessage := <-projectList.projectOperationChannel:
-			if projectOperationMessage.msgType == SetWatchServiceMsg {
+			if projectOperationMessage.msgType == setWatchServiceMsg {
 				watchService = projectOperationMessage.setWatchServiceMessage
 
-			} else if projectOperationMessage.msgType == UpdateProjectListFromWebSocketMsg {
+			} else if projectOperationMessage.msgType == updateProjectListFromWebSocketMsg {
 				projectList.handleUpdateProjectListFromWebSocket(projectOperationMessage.updateProjectListFromWebSocketMessage, projectsMap, watchService, postOutputQueue)
 
-			} else if projectOperationMessage.msgType == UpdateProjectListFromGetRequestMsg {
+			} else if projectOperationMessage.msgType == updateProjectListFromGetRequestMsg {
 				projectList.handleUpdateProjectListFromGetRequest(projectOperationMessage.updateProjectListFromGetRequestMessage, projectsMap, watchService, postOutputQueue)
 
-			} else if projectOperationMessage.msgType == ReceiveNewWatchEventEntriesMsg {
+			} else if projectOperationMessage.msgType == receiveNewWatchEventEntriesMsg {
 				msg := projectOperationMessage.receiveNewWatchEventEntriesMessage
 				handleReceiveNewWatchEventEntries(msg.project, msg.watchEventEntry, projectsMap)
+
+			} else if projectOperationMessage.msgType == requestDebugMsg {
+				responseChan := projectOperationMessage.requestDebugMessage
+				responseChan <- projectList.handleRequestDebugMsg(projectsMap)
 			}
 		}
 
 	}
+}
+
+func (projectList *ProjectList) handleRequestDebugMsg(projectsMap map[string]*projectObject) string {
+	result := ""
+	for projectID, obj := range projectsMap {
+
+		if obj == nil {
+			continue
+		}
+
+		result += "- " + projectID + " -> " + obj.project.PathToMonitor
+		if obj.eventBatchUtil != nil {
+			result += " | " + strings.TrimSpace(obj.eventBatchUtil.RequestDebugMessage())
+		}
+
+		if len(obj.project.IgnoredPaths) > 0 {
+
+			result += " | ignoredPaths: "
+
+			for _, val := range obj.project.IgnoredPaths {
+				result += "'" + val + "' "
+			}
+		}
+
+		result += "\n"
+
+	}
+	return result
+
 }
 
 func (projectList *ProjectList) handleUpdateProjectListFromGetRequest(entries *models.WatchlistEntries, projectsMap map[string]*projectObject, watchService *WatchService, postOutputQueue *HttpPostOutputQueue) {
