@@ -52,6 +52,9 @@ func main() {
 
 	StartWSConnectionManager(baseURL, projectList, httpGetStatusThread)
 
+	debugTimer := NewDebugTimer(watchService, projectList, httpPostOutputQueue)
+	debugTimer.Start()
+
 	for {
 		time.Sleep(1000 * time.Millisecond)
 	}

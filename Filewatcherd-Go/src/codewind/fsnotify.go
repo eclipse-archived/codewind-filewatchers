@@ -37,6 +37,11 @@ type WatchService struct {
 type WatchServiceChannelMessage struct {
 	addOrRemove         *AddRemoveRootPathChannelMessage
 	directoryWaitResult *WatchDirectoryWaitResultMessage
+	debugMessage        *FsNotifyDebugMessage
+}
+
+type FsNotifyDebugMessage struct {
+	responseChannel chan string
 }
 
 type AddRemoveRootPathChannelMessage struct {
@@ -76,8 +81,9 @@ func (service *WatchService) AddRootPath(path string, projectFromWS models.Proje
 	}
 
 	msgPackage := &WatchServiceChannelMessage{
-		msg,
-		nil,
+		addOrRemove:         msg,
+		directoryWaitResult: nil,
+		debugMessage:        nil,
 	}
 
 	service.watchServiceChannel <- msgPackage
@@ -94,11 +100,24 @@ func (service *WatchService) RemoveRootPath(path string, projectFromWS models.Pr
 	}
 
 	msgPackage := &WatchServiceChannelMessage{
-		msg,
-		nil,
+		addOrRemove:         msg,
+		directoryWaitResult: nil,
+		debugMessage:        nil,
 	}
 
 	service.watchServiceChannel <- msgPackage
+}
+
+func (service *WatchService) RequestDebugMessage() chan string {
+	responseChannel := make(chan string)
+
+	msgPackage := &WatchServiceChannelMessage{
+		debugMessage: &FsNotifyDebugMessage{responseChannel},
+	}
+
+	service.watchServiceChannel <- msgPackage
+
+	return responseChannel
 }
 
 func watchServiceEventLoop(publicObject *WatchService, projectList *ProjectList, baseURL string) {
@@ -136,6 +155,34 @@ func watchServiceEventLoop(publicObject *WatchService, projectList *ProjectList,
 				}
 
 			}
+
+			// If we receive a debug request, respond with the current status
+			if watchServiceMessage.debugMessage != nil {
+				responseChannel := watchServiceMessage.debugMessage.responseChannel
+
+				result := ""
+				utils.LogInfo("Processing debug message")
+
+				for key, val := range watchedProjects {
+					result += "- " + key + " | " + val.rootPath + " | "
+					if val.closed_synch_lock {
+						result += "(closed)"
+					} else {
+						result += "(open)"
+					}
+					result += "\n"
+
+					// If the watcher is open, then request debug data from it.
+					val.lock.Lock()
+					if val.open_synch_lock {
+						result += val.latest_debug_state_lock
+					}
+					val.lock.Unlock()
+
+				}
+
+				responseChannel <- result
+			}
 		}
 
 	}
@@ -160,6 +207,8 @@ func addRootPathInternal_step1(addMsg *AddRemoveRootPathChannelMessage, watchedP
 		addMsg.path,
 		strconv.FormatUint(rand.Uint64(), 10),
 		false,
+		false,
+		"",
 		&sync.Mutex{},
 		make(map[string]bool),
 		make(map[string]bool),
@@ -228,7 +277,7 @@ func waitForWatchedPathSuccess(path string, projectToWatch *models.ProjectToWatc
 		}
 	}
 
-	utils.LogInfo("waitForWatchedPathSuccess completed with status of watchSuccess: " + strconv.FormatBool(watchSuccess))
+	utils.LogInfo("waitForWatchedPathSuccess completed for projId " + projectToWatch.ProjectID + " with status of watchSuccess: " + strconv.FormatBool(watchSuccess))
 
 	result := &WatchDirectoryWaitResultMessage{
 		path,
@@ -237,8 +286,9 @@ func waitForWatchedPathSuccess(path string, projectToWatch *models.ProjectToWatc
 	}
 
 	msgPackage := &WatchServiceChannelMessage{
-		nil,
-		result,
+		addOrRemove:         nil,
+		directoryWaitResult: result,
+		debugMessage:        nil,
 	}
 
 	watchService.watchServiceChannel <- msgPackage
@@ -251,7 +301,9 @@ func closeWatcherIfNeeded(existing *CodewindWatcher) {
 	existing.lock.Lock()
 	if !existing.closed_synch_lock {
 		watcherToClose = existing.fsnotifyWatcher
+		existing.latest_debug_state_lock = ""
 		existing.closed_synch_lock = true
+		existing.open_synch_lock = false
 		utils.LogInfo("Existing watcher found, so deleting old watcher " + existing.rootPath)
 	} else {
 		utils.LogSevere("A closed entry should not exist in the watcher map.")
@@ -282,14 +334,17 @@ func removeRootPathInternal(removeMsg *AddRemoveRootPathChannelMessage, watchedP
 
 }
 
+/** Only immutable objects (id, rootPath), or lockable objects, should be accessed across threads */
 type CodewindWatcher struct {
-	fsnotifyWatcher   *fsnotify.Watcher
-	rootPath          string
-	id                string
-	closed_synch_lock bool
-	lock              *sync.Mutex
-	watchedDirMap     map[string] /*path*/ bool
-	isDirMap          map[string] /*path*/ bool /** The last time we saw this existing, was it a file or a dir*/
+	fsnotifyWatcher         *fsnotify.Watcher
+	rootPath                string
+	id                      string
+	closed_synch_lock       bool
+	open_synch_lock         bool
+	latest_debug_state_lock string
+	lock                    *sync.Mutex
+	watchedDirMap           map[string] /*path*/ bool
+	isDirMap                map[string] /*path*/ bool /** The last time we saw this existing, was it a file or a dir*/
 }
 
 func startWatcher(cWatcher *CodewindWatcher, path string, projectList *ProjectList, service *WatchService, project *models.ProjectToWatch) error {
@@ -300,11 +355,17 @@ func startWatcher(cWatcher *CodewindWatcher, path string, projectList *ProjectLi
 		return err
 	}
 
+	cWatcher.lock.Lock()
+	cWatcher.open_synch_lock = true
+	cWatcher.lock.Unlock()
+
 	cWatcher.fsnotifyWatcher = watcher
 
 	go func() {
 
 		watcherFuncID := strconv.FormatUint(rand.Uint64(), 10)
+
+		debugUpdateTimer := time.NewTicker(5 * time.Second)
 
 		for {
 			select {
@@ -457,7 +518,12 @@ func startWatcher(cWatcher *CodewindWatcher, path string, projectList *ProjectLi
 				cWatcher.lock.Unlock()
 
 				if isClosed {
-					utils.LogInfo("Ignoring an error or !ok that was received after the watcher was closed.")
+					if err != nil {
+						utils.LogInfo("Ignoring an error or !ok that was received after the watcher was closed: " + err.Error())
+					} else {
+						utils.LogInfo("Ignoring an error or !ok that was received after the watcher was closed")
+					}
+
 					// Exit the channel read function, here
 					return
 				}
@@ -471,9 +537,29 @@ func startWatcher(cWatcher *CodewindWatcher, path string, projectList *ProjectLi
 					continue
 				}
 
+			case _ = <-debugUpdateTimer.C: // Update the internal debug state every X minutes
+
+				// Print the first X paths in 'watchedDirMap'
+				count := 0
+				result := ""
+				for key := range cWatcher.watchedDirMap {
+					result += "  - " + key + "\n"
+					count++
+
+					if count >= 20 {
+						break
+					}
+				}
+
+				cWatcher.lock.Lock()
+				if !cWatcher.closed_synch_lock { // Only update if still open
+					cWatcher.latest_debug_state_lock = result
+				}
+				cWatcher.lock.Unlock()
+
 			}
-		}
-	}()
+		} // end for
+	}() // end go func
 
 	addedFiles, addedDirs, walkErr := walkPathAndAdd(path, cWatcher)
 
@@ -584,7 +670,7 @@ func informWatchSuccessStatus(ptw *models.ProjectToWatch, success bool, baseURL 
 			tr := &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			}
-				
+
 			client := &http.Client{Transport: tr}
 
 			req, err := http.NewRequest(http.MethodPut, url, buffer)
@@ -619,7 +705,7 @@ func informWatchSuccessStatus(ptw *models.ProjectToWatch, success bool, baseURL 
 
 		}
 
-		utils.LogInfo("Successfully informed server of watch state for " + ptw.ProjectID + " watch-state-id: " + ptw.ProjectWatchStateID + ", success: " + successVal)
+		utils.LogInfo("Successfully informed server of watch state for " + ptw.ProjectID + ", watch-state-id: " + ptw.ProjectWatchStateID + ", success: " + successVal)
 
 	}()
 
