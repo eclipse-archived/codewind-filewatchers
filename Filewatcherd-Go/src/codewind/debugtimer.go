@@ -37,7 +37,7 @@ func NewDebugTimer(watchService *WatchService, projectList *ProjectList, postOut
 func (debugTimer *DebugTimer) Start() {
 
 	// This is intentionally a timer, and not a ticker.
-	timer := time.NewTimer(10 * time.Second)
+	timer := time.NewTimer(30 * time.Minute)
 	go func() {
 		for range timer.C {
 			debugTimer.OutputDebug()
