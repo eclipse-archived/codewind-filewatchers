@@ -95,4 +95,16 @@ export class WatchService implements IWatchService {
         return this._parent;
     }
 
+    public generateDebugState(): string {
+        if (this._disposed) { return "[disposed]"; }
+
+        let result = "";
+
+        for (const [key, value] of this._watchedProjects) {
+            result += "- " + key + " | " + value.pathRoot + "\n";
+        }
+
+        return result;
+    }
+
 }

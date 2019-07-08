@@ -25,9 +25,12 @@ export class PostQueueChunkGroup {
 
     private readonly _timestamp: number;
 
+    private readonly _projectId: string;
+
     constructor(timestamp: number, projectId: string, base64Compressed: string[], parent: HttpPostOutputQueue) {
         this._parent = parent;
         this._timestamp = timestamp;
+        this._projectId = projectId;
 
         let chunkId = 1;
 
@@ -109,4 +112,7 @@ export class PostQueueChunkGroup {
         return this._timestamp;
     }
 
+    public get projectId(): string {
+        return this._projectId;
+    }
 }

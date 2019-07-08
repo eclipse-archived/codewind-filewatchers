@@ -20,4 +20,7 @@ export interface IWatchService {
     setParent(parent: FileWatcher): void;
 
     dispose(): void;
+
+    generateDebugState(): string;
+
 }

@@ -23,6 +23,7 @@ import { ProjectToWatchFromWebSocket } from "./ProjectToWatchFromWebSocket";
 import { WebSocketManagerThread } from "./WebSocketManagerThread";
 
 import * as request from "request-promise-native";
+import { DebugTimer } from "./DebugTimer";
 import { ExponentialBackoffUtil } from "./ExponentialBackoffUtil";
 import { IWatchService } from "./IWatchService";
 import * as log from "./Logger";
@@ -69,6 +70,7 @@ export class FileWatcher {
         this._webSocketManager = new WebSocketManagerThread(this._wsBaseUrl, this);
         this._webSocketManager.queueEstablishConnection();
 
+        const debugTimer = new DebugTimer(this);
     }
 
     public updateFileWatchStateFromGetRequest(projectsToWatch: ProjectToWatch[]) {
@@ -297,6 +299,44 @@ export class FileWatcher {
             e.batchUtil.dispose();
         });
 
+    }
+
+    public generateDebugString(): string {
+        let result = "";
+
+        if (this._disposed) {
+            return "";
+        }
+
+        result += "---------------------------------------------------------------------------------------\n\n";
+
+        result += "WatchService - " + this._watchService.constructor.name + ":\n";
+        result += this._watchService.generateDebugState().trim() + "\n";
+
+        result += "\n";
+
+        result += "Project list:\n";
+
+        for (const [key, value] of this._projectsMap) {
+
+            const ptw = value.projectToWatch;
+
+            result += "- " + key + " | " + ptw.pathToMonitor;
+
+            if (ptw.ignoredPaths.length > 0) {
+                result += " | ignoredPaths: ";
+                for (const path of  ptw.ignoredPaths) {
+                    result += "'" + path + "' ";
+                }
+            }
+            result += "\n";
+        }
+
+        result += "\nHTTP Post Output Queue:\n" + this._outputQueue.generateDebugString().trim() + "\n\n";
+
+        result += "---------------------------------------------------------------------------------------\n\n";
+
+        return result;
     }
 
     private removeSingleProjectToWatch(removedProject: ProjectToWatch) {

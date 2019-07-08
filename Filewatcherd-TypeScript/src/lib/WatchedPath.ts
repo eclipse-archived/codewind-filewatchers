@@ -221,6 +221,10 @@ export class WatchedPath {
 
     }
 
+    public get pathRoot(): string {
+        return this._pathRoot;
+    }
+
     /**
      * Recursively scan a directory and create a list of any files/folders found inside. My thinking
      * in creating this was it would reduce incidents of events being missed by Chokidar, but the code
