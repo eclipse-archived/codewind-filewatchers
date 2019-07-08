@@ -365,7 +365,7 @@ func startWatcher(cWatcher *CodewindWatcher, path string, projectList *ProjectLi
 
 		watcherFuncID := strconv.FormatUint(rand.Uint64(), 10)
 
-		debugUpdateTimer := time.NewTicker(5 * time.Second)
+		debugUpdateTimer := time.NewTicker(10 * time.Minute)
 
 		for {
 			select {
