@@ -114,6 +114,11 @@ func LogSevereErr(msg string, err error) {
 	l.err(outputMsg)
 }
 
+func IsLogDebug() bool {
+	l := loggerInternal()
+	return l.logLevel == DEBUG
+}
+
 func (l *MonitorLogger) out(msg string) {
 	l.output <- outputLine{
 		msg,

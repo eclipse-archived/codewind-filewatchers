@@ -371,7 +371,9 @@ func startWatcher(cWatcher *CodewindWatcher, path string, projectList *ProjectLi
 			select {
 			case event, ok := <-watcher.Events:
 
-				utils.LogDebug("Raw: " + event.Name + " " + event.Op.String() + ", id: " + cWatcher.id + ", watcher func id: " + watcherFuncID)
+				if utils.IsLogDebug() {
+					utils.LogDebug("Raw fsnotify event: " + event.Name + " " + event.Op.String() + ", id: " + cWatcher.id + ", watcher func id: " + watcherFuncID + " watch state Id: " + project.ProjectWatchStateID)
+				}
 
 				if !ok {
 
@@ -388,6 +390,14 @@ func startWatcher(cWatcher *CodewindWatcher, path string, projectList *ProjectLi
 						utils.LogSevere("!ok from watcher: " + event.Name + " " + event.Op.String() + " " + event.String() + " " + cWatcher.id)
 						continue
 					}
+				}
+
+				cWatcher.lock.Lock()
+				isClosed := cWatcher.closed_synch_lock
+				cWatcher.lock.Unlock()
+				if isClosed {
+					utils.LogDebug("Ignoring event on closed watcher: " + event.Name + " " + event.Op.String())
+					continue
 				}
 
 				changeType := ""
@@ -519,9 +529,9 @@ func startWatcher(cWatcher *CodewindWatcher, path string, projectList *ProjectLi
 
 				if isClosed {
 					if err != nil {
-						utils.LogInfo("Ignoring an error or !ok that was received after the watcher was closed: " + err.Error())
+						utils.LogInfo("Ignoring an error or !ok that was received after the watcher was closed, for project " + project.ProjectID + ": " + err.Error())
 					} else {
-						utils.LogInfo("Ignoring an error or !ok that was received after the watcher was closed")
+						utils.LogInfo("Ignoring an error or !ok that was received after the watcher was closed, for project " + project.ProjectID)
 					}
 
 					// Exit the channel read function, here
