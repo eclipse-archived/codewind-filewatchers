@@ -18,13 +18,15 @@ import crypto = require("crypto");
 import fs = require("fs");
 import os = require("os");
 import path = require("path");
+import { IWatchService } from "./IWatchService";
 import { WatchService } from "./WatchService";
 /**
  *
  * @param codewindURL - Eg, http://localhost:9090
  * @param logDir - Directory to write logs to, by default ~/.codewind.
  */
-export default async function createWatcher(codewindURL: string, logDir?: string): Promise<FileWatcher> {
+export default async function createWatcher(codewindURL: string, logDir?: string,
+                                            externalWatchService?: IWatchService): Promise<FileWatcher> {
 
     // Default log level
     let logLevel = log.LogLevel.INFO;
@@ -61,7 +63,9 @@ export default async function createWatcher(codewindURL: string, logDir?: string
 
     const clientUuid = crypto.randomBytes(16).toString("hex");
 
-    const fw = new FileWatcher(codewindURL, watchService, null, clientUuid);
+    const fw = new FileWatcher(codewindURL, watchService, (externalWatchService) ? externalWatchService : null,
+        clientUuid);
+
     return fw;
 }
 
