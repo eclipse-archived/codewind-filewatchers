@@ -162,29 +162,26 @@ export class FileWatcher {
         let path = PathUtils.convertAbsolutePathWithUnixSeparatorsToProjectRelativePath(
             watchEntry.absolutePathWithUnixSeparators, match.pathToMonitor);
 
-        // let path = watchEntry.absolutePathWithUnixSeparators;
-
-        // if (!path.startsWith(match.pathToMonitor)) {
-        //     // This shouldn't happen, and is thus severe
-        //     const msg = "Watch event '" + path + "' does not match project path '" + match.pathToMonitor + "'";
-        //     log.severe(msg);
-        //     return;
-        // }
-
-        // // Strip project parent directory from path:
-        // // If pathToMonitor is: /home/user/codewind/project
-        // // and watchEventPath is: /home/user/codewind/project/some-file.txt
-        // // then this will convert watchEventPath to /some-file.txt
-        // path = path.substring(match.pathToMonitor.length);
-
-        // // If the event is occurring on the root path
+        // If the event is occurring on the root path
         if (!path || path.length === 0) {
             path = "/";
         }
 
-        if (match.ignoredPaths && filter.isFilteredOutByPath(path)) {
-            log.debug("Filtering out " + path + " by path.");
-            return;
+        if (match.ignoredPaths) {
+
+            if (filter.isFilteredOutByPath(path)) {
+                log.debug("Filtering out " + path + " by path.");
+                return;
+            }
+
+            for (const parentPath of PathUtils.splitRelativeProjectPathIntoComponentPaths(path)) {
+                // Apply the path filter against parent paths as well (if path is /a/b/c, then
+                // also try to match against /a/b and /a)
+                if (filter.isFilteredOutByPath(parentPath)) {
+                    log.debug("Filtering out " + path + " by parent path.");
+                    return;
+                }
+            }
         }
         if (match.ignoredFilenames && filter.isFilteredOutByFilename(path)) {
             log.debug("Filtering out " + path + " by filename.");
