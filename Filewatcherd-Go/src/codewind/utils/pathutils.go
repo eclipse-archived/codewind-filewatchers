@@ -271,3 +271,27 @@ func ConvertAbsolutePathWithUnixSeparatorsToProjectRelativePath(path string, roo
 	return &path
 
 }
+
+/** "/moo/cow" => [ "/moo/cow", "/moo"] */
+func SplitRelativeProjectPathIntoComponentPaths(path string) []string {
+	result := make([]string, 0)
+
+	currPath := path
+	for {
+
+		if len(currPath) == 1 {
+			break
+		}
+
+		result = append(result, currPath)
+
+		index := strings.LastIndex(currPath, "/")
+		if index <= 0 {
+			break
+		}
+
+		currPath = currPath[:index]
+	}
+
+	return result
+}

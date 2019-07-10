@@ -337,9 +337,21 @@ func handleReceiveNewWatchEventEntries(projectMatch *models.ProjectToWatch, entr
 		return
 	}
 
-	if projectMatch.IgnoredPaths != nil && filter.IsFilteredOutByPath(*path) {
-		utils.LogDebug("Filtered out '" + *path + "' due to path filter")
-		return
+	if projectMatch.IgnoredPaths != nil {
+
+		if filter.IsFilteredOutByPath(*path) {
+			utils.LogDebug("Filtered out '" + *path + "' due to path filter")
+			return
+		} else {
+			// Apply the path filter against parent paths as well (if path is /a/b/c, then also try to match against /a/b and /a)
+			pathsToProcess := utils.SplitRelativeProjectPathIntoComponentPaths(*path)
+			for _, val := range pathsToProcess {
+				if filter.IsFilteredOutByPath(val) {
+					return
+				}
+			}
+		}
+
 	}
 
 	if projectMatch.IgnoredFilenames != nil && filter.IsFilteredOutByFilename(*path) {
