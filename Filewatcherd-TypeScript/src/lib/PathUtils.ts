@@ -207,3 +207,27 @@ export function normalizePath(pathParam: string): string {
     return absPath;
 
 }
+
+/** "/moo/cow" => [ "/moo/cow", "/moo"] */
+export function splitRelativeProjectPathIntoComponentPaths(path: string): string[] {
+    const result: string[] = [];
+
+    let currPath = path;
+    while (true) {
+
+        if (currPath.length === 1) {
+            break;
+        }
+
+        result.push(currPath);
+
+        const index = currPath.lastIndexOf("/");
+        if (index <= 0) {
+            break;
+        }
+
+        currPath = currPath.substring(0, index);
+    }
+
+    return result;
+}
