@@ -37,7 +37,8 @@ export class FileWatcher {
 
     private readonly _getStatusThread: HttpGetStatusThread;
 
-    private readonly _watchService: IWatchService;
+    private readonly _internalWatchService: IWatchService;
+    private readonly _externalWatchService: IWatchService;
 
     private readonly _outputQueue: HttpPostOutputQueue;
 
@@ -47,12 +48,19 @@ export class FileWatcher {
 
     private _disposed: boolean = false;
 
-    constructor(urlParam: string, watchService: IWatchService, clientUuid: string) {
+    constructor(urlParam: string, internalWatchService: IWatchService, externalWatchService: IWatchService,
+                clientUuid: string) {
 
         this._clientUuid = clientUuid;
 
-        this._watchService = watchService;
-        this._watchService.setParent(this);
+        this._internalWatchService = internalWatchService;
+        this._internalWatchService.setParent(this);
+
+        // _externalWS may be null, as it is optional; only _internalWS is required.
+        this._externalWatchService = externalWatchService;
+        if (this._externalWatchService) {
+            this._externalWatchService.setParent(this);
+        }
 
         this._projectsMap = new Map<string, ProjectObject>();
 
@@ -288,7 +296,11 @@ export class FileWatcher {
         this._disposed = true;
 
         this._getStatusThread.dispose();
-        this._watchService.dispose();
+        this._internalWatchService.dispose();
+        if (this._externalWatchService) {
+            this._externalWatchService.dispose();
+        }
+
         this._outputQueue.dispose();
         this._webSocketManager.dispose();
 
@@ -307,8 +319,13 @@ export class FileWatcher {
 
         result += "---------------------------------------------------------------------------------------\n\n";
 
-        result += "WatchService - " + this._watchService.constructor.name + ":\n";
-        result += this._watchService.generateDebugState().trim() + "\n";
+        result += "WatchService - " + this._internalWatchService.constructor.name + ":\n";
+        result += this._internalWatchService.generateDebugState().trim() + "\n";
+
+        if (this._externalWatchService) {
+            result += "WatchService - " + this._externalWatchService.constructor.name + ":\n";
+            result += this._externalWatchService.generateDebugState().trim() + "\n";
+        }
 
         result += "\n";
 
@@ -353,7 +370,7 @@ export class FileWatcher {
         const fileToMonitor = PathUtils.convertAbsoluteUnixStyleNormalizedPathToLocalFile(ptw.pathToMonitor);
         log.debug("Calling watch service removePath with file: " + fileToMonitor);
 
-        this._watchService.removePath(fileToMonitor, ptw);
+        po.watchService.removePath(fileToMonitor, ptw);
 
     }
 
@@ -365,10 +382,25 @@ export class FileWatcher {
         const fileToMonitor = PathUtils.convertAbsoluteUnixStyleNormalizedPathToLocalFile(ptw.pathToMonitor);
 
         if (po === undefined) {
-            po = new ProjectObject(ptw.projectId, ptw, this);
+
+            let watchService =  this._internalWatchService;
+
+            // Determine which watch service to use, based on what was provided in the
+            // FW constructor, and what is specified in the JSON object.
+            if (ptw.external && this._externalWatchService) {
+                watchService = this._externalWatchService;
+            }
+
+            if (watchService == null) {
+                log.severe("Watch service for the new project was null; this shouldn't happen. projectId: "
+                        + ptw.projectId + " path: " + ptw.pathToMonitor);
+                return;
+            }
+
+            po = new ProjectObject(ptw.projectId, ptw, watchService, this);
             this._projectsMap.set(ptw.projectId, po);
 
-            this._watchService.addPath(fileToMonitor, ptw);
+            watchService.addPath(fileToMonitor, ptw);
 
             log.info("Added new project with path '" + ptw.pathToMonitor
                 + "' to watch list, with watch directory: '" + fileToMonitor + "'");
@@ -387,13 +419,13 @@ export class FileWatcher {
                 po.updateProjectToWatch(ptw);
 
                 // Remove the old path
-                this._watchService.removePath(fileToMonitor, oldProjectToWatch);
+                po.watchService.removePath(fileToMonitor, oldProjectToWatch);
 
                 log.info("From update, removed project with path '" + oldProjectToWatch.pathToMonitor
                     + "' from watch list, with watch directory: '" + fileToMonitor + "'");
 
                 // Added the new path and PTW
-                this._watchService.addPath(fileToMonitor, ptw);
+                po.watchService.addPath(fileToMonitor, ptw);
 
                 log.info("From update, added new project with path '" + ptw.pathToMonitor
                     + "' to watch list, with watch directory: '" + fileToMonitor + "'");

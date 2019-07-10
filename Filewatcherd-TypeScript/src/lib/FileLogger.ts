@@ -39,7 +39,8 @@ export class FileLogger {
         this._logDir = logDir;
 
         this.log("codewind-filewatcher logging to " + logDir
-            + " with log level " + log.logLevelToString(LogSettings.getInstance().logLevel));
+            + " with log level " + log.logLevelToString(LogSettings.getInstance().logLevel)
+            + " on platform '" + process.platform + "'");
     }
 
     public log(str: string) {

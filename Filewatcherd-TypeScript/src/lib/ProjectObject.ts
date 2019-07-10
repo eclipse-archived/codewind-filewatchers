@@ -13,6 +13,7 @@ import { FileChangeEventBatchUtil } from "./FileChangeEventBatchUtil";
 import { FileWatcher } from "./FileWatcher";
 import { ProjectToWatch } from "./ProjectToWatch";
 
+import { IWatchService } from "./IWatchService";
 import * as log from "./Logger";
 
 export class ProjectObject {
@@ -21,9 +22,18 @@ export class ProjectObject {
 
     private _projectToWatch: ProjectToWatch;
 
-    public constructor(projectId: string, projectToWatch: ProjectToWatch, parent: FileWatcher) {
-        this._projectToWatch = projectToWatch;
-        this._batchUtil = new FileChangeEventBatchUtil(projectId, parent);
+    private readonly _watchService: IWatchService;
+
+    public constructor(projectId: string, projectToWatch: ProjectToWatch, watchService: IWatchService,
+                       parent: FileWatcher) {
+
+            if (!projectId || !projectToWatch || !watchService || !parent) {
+                log.severe("Missing parameters to constructor of ProjectObject!");
+            }
+
+            this._projectToWatch = projectToWatch;
+            this._batchUtil = new FileChangeEventBatchUtil(projectId, parent);
+            this._watchService = watchService;
     }
 
     public updateProjectToWatch(newProjectToWatch: ProjectToWatch) {
@@ -45,5 +55,9 @@ export class ProjectObject {
 
     public get batchUtil(): FileChangeEventBatchUtil {
         return this._batchUtil;
+    }
+
+    public get watchService(): IWatchService {
+        return this._watchService;
     }
 }
