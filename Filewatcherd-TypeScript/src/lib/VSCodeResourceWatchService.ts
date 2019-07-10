@@ -88,6 +88,10 @@ export class VSCodeResourceWatchService implements IWatchService {
         this._parent = parent;
     }
 
+    public get parent(): FileWatcher {
+        return this._parent;
+    }
+
     public dispose(): void {
         this._disposed = true;
         this._projIdToWatchedPaths.clear();

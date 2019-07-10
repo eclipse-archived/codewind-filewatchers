@@ -19,7 +19,6 @@ import fs = require("fs");
 import os = require("os");
 import path = require("path");
 import { WatchService } from "./WatchService";
-
 /**
  *
  * @param codewindURL - Eg, http://localhost:9090
@@ -51,7 +50,8 @@ export default async function createWatcher(codewindURL: string, logDir?: string
 
     const fileLogger = new FileLogger(logDir);
 
-    console.log("codewind-filewatcher logging to " + logDir + " with log level " + log.logLevelToString(logLevel));
+    console.log("codewind-filewatcher logging to " + logDir + " with log level " + log.logLevelToString(logLevel)
+        + " on platform '" + process.platform + "'");
 
     log.LogSettings.getInstance().setFileLogger(fileLogger);
 
@@ -61,7 +61,7 @@ export default async function createWatcher(codewindURL: string, logDir?: string
 
     const clientUuid = crypto.randomBytes(16).toString("hex");
 
-    const fw = new FileWatcher(codewindURL, watchService, clientUuid);
+    const fw = new FileWatcher(codewindURL, watchService, null, clientUuid);
     return fw;
 }
 

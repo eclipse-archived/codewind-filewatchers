@@ -27,6 +27,8 @@ export class ProjectToWatch {
 
     private readonly _projectWatchStateId: string;
 
+    private readonly _external: boolean;
+
     constructor(json: models.IWatchedProjectJson, deleteChangeType: boolean) {
 
         // Delete event from WebSocket only has these fields.
@@ -56,6 +58,8 @@ export class ProjectToWatch {
         this._ignoredFilenames = ignoredFilenames;
 
         this._projectWatchStateId = json.projectWatchStateId;
+
+        this._external = json.type ? (json.type.toLowerCase() === "non-project") : false;
     }
 
     private validatePathToMonitor() {
@@ -94,5 +98,9 @@ export class ProjectToWatch {
 
     public get projectWatchStateId(): string {
         return this._projectWatchStateId;
+    }
+
+    public get external(): boolean {
+        return this._external;
     }
 }

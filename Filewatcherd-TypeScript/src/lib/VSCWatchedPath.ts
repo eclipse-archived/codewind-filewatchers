@@ -24,6 +24,8 @@ export class VSCWatchedPath {
 
         this._pathRoot = pathRoot;
 
+        this._parent.parent.sendWatchResponseAsync(true, ptw);
+
     }
     public receiveFileChanges(entries: WatchEventEntry[]) {
 
