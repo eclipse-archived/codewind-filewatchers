@@ -99,6 +99,8 @@ func (e *FileChangeEventBatchUtil) fileChangeListener(projectID string, postOutp
 
 		select {
 		case timerReceived := <-timerChan:
+
+			// First, update our debug stats
 			debugTimeSinceLastTimerReceived = time.Now()
 			e.updateDebugState(debugTimeSinceLastFileChange, debugTimeSinceLastTimerReceived)
 
@@ -143,6 +145,7 @@ func (e *FileChangeEventBatchUtil) updateDebugState(debugTimeSinceLastFileChange
 	e.lock.Unlock()
 }
 
+/** Process the event list, split it into chunks, then pass it to the HTTP POST output queue */
 func processAndSendEvents(eventsToSend []ChangedFileEntry, projectID string, postOutputQueue *HttpPostOutputQueue) {
 	sort.SliceStable(eventsToSend, func(i, j int) bool {
 
@@ -159,7 +162,7 @@ func processAndSendEvents(eventsToSend []ChangedFileEntry, projectID string, pos
 		return
 	}
 
-	// Split the entries into requests, ensure that each request is no larger
+	// Split the entries into requests (chunks), to ensure that each request is no larger
 	// then a given size.
 	mostRecentTimestamp := eventsToSend[len(eventsToSend)-1]
 
@@ -206,6 +209,7 @@ func processAndSendEvents(eventsToSend []ChangedFileEntry, projectID string, pos
 		stringsToSend = append(stringsToSend, *compressedStr)
 	}
 
+	// Pass the list of chunks to the HTTP Post output queue, for transmission to the server
 	utils.LogDebug("Strings to send " + strconv.Itoa(len(stringsToSend)))
 	if len(stringsToSend) > 0 {
 		postOutputQueue.AddToQueue(projectID, mostRecentTimestamp.timestamp, stringsToSend)
@@ -225,7 +229,7 @@ func generateChangeListSummaryForDebug(eventsToSend []ChangedFileEntry) string {
 		} else if val.eventType == "DELETE" {
 			result += "-"
 		} else {
-			result += "?"
+			result += "?" // if you see this, it's a bug ;)
 		}
 
 		filename := val.path
@@ -236,6 +240,7 @@ func generateChangeListSummaryForDebug(eventsToSend []ChangedFileEntry) string {
 
 		result += filename + " "
 
+		// Only output the first 256 chars of changes, to reduce log verbosity
 		if len(result) > 256 {
 			break
 		}

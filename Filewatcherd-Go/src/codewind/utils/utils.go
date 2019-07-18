@@ -19,6 +19,10 @@ import (
 	"time"
 )
 
+/**
+ * Implements an exponential backoff, which increases the delay between requests
+ * when a request failure occurs, and resets the delay on success.
+ */
 type ExponentialBackoff struct {
 	MinFailureDelay int
 
@@ -93,6 +97,7 @@ func IsValidURLBase(str string) bool {
 	return false
 }
 
+/** Ok, more like a "uuid", but at least the same amount of entropy */
 func GenerateUuid() *string {
 	u := make([]byte, 16)
 	_, err := rand.Read(u)

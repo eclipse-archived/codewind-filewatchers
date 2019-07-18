@@ -19,6 +19,17 @@ import (
 	"time"
 )
 
+/**
+ * Simple singleton logger with 4 log levels.
+ *
+ * Log levels:
+ * - DEBUG: Fine-grained, noisy, excessively detailed, and mostly irrelevant messages.
+ * - INFO: Coarse-grained messages related to the high-level inner workings of the code.
+ * - ERROR: Errors which are bad, but not entirely unexpected, such as errors I/O errors when running on a flaky network connection.
+ * - SEVERE: Unexpected errors that strongly suggest a client/server implementation bug or a serious client/server runtime issue.
+ *
+ */
+
 type MonitorLogger struct {
 	output   chan outputLine
 	logLevel LogLevel
