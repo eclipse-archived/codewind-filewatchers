@@ -28,6 +28,16 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+/**
+ * The WatchService class uses the directory/file monitoring functionality of the 3rd party
+ * fsnotify go library for file monitoring.
+ *
+ * (Add/Remove)RootPath are called by the ProjectList goroutine whenever a new directory needs to be
+ * monitored, or no longer needs to be monitored, or the filters have changed.
+ *
+ * These requests are converted into channel messages and passed to the internal goroutine to ensure
+ * thread safety.
+ */
 type WatchService struct {
 	watchServiceChannel chan *WatchServiceChannelMessage
 	clientUUID          string
@@ -189,6 +199,9 @@ func watchServiceEventLoop(publicObject *WatchService, projectList *ProjectList,
 
 }
 
+/**
+ * First, we construct the CodewindWatcher in an unopened state, then start a new goroutine to wait for the project directory
+ * to exist. */
 func addRootPathInternal_step1(addMsg *AddRemoveRootPathChannelMessage, watchedProjects map[string]*CodewindWatcher, projectList *ProjectList,
 	baseURL string, service *WatchService) {
 
@@ -220,6 +233,7 @@ func addRootPathInternal_step1(addMsg *AddRemoveRootPathChannelMessage, watchedP
 
 }
 
+/** This function is called once the project directory exists, so we can now start the fsnotify watcher and report success */
 func addRootPathInternal_step2(path string, project *models.ProjectToWatch, watchedProjects map[string]*CodewindWatcher, projectList *ProjectList,
 	baseURL string, service *WatchService) {
 
@@ -242,6 +256,9 @@ func addRootPathInternal_step2(path string, project *models.ProjectToWatch, watc
 
 }
 
+/**
+ * Wait up to X minutes for the project directory to exist; if it succeeds proceed to step 2, otherwise
+ * report an error back to the server. */
 func waitForWatchedPathSuccess(path string, projectToWatch *models.ProjectToWatch, watchService *WatchService) {
 	expireTime := time.Now().Add(time.Minute * 5)
 
@@ -294,6 +311,7 @@ func waitForWatchedPathSuccess(path string, projectToWatch *models.ProjectToWatc
 	watchService.watchServiceChannel <- msgPackage
 }
 
+/** Close an old watcher, either because the project is no longer being watched, or the filters have been updated. */
 func closeWatcherIfNeeded(existing *CodewindWatcher) {
 
 	var watcherToClose *fsnotify.Watcher
@@ -336,17 +354,30 @@ func removeRootPathInternal(removeMsg *AddRemoveRootPathChannelMessage, watchedP
 
 /** Only immutable objects (id, rootPath), or lockable objects, should be accessed across threads */
 type CodewindWatcher struct {
-	fsnotifyWatcher         *fsnotify.Watcher
-	rootPath                string
-	id                      string
-	closed_synch_lock       bool
-	open_synch_lock         bool
+	fsnotifyWatcher *fsnotify.Watcher /* reference to notify api */
+	rootPath        string            /* root directory of the path*/
+	id              string
+
+	/* whether the watcher is closed, and therefore events can be ignored, lock on  */
+	closed_synch_lock bool
+
+	/* whether the watcher is open, and therefore the project directory exists */
+	open_synch_lock bool
+
+	/* every X minutes, the state of the watcher is stored in this string, for thread-safe use by the debug thread. */
 	latest_debug_state_lock string
-	lock                    *sync.Mutex
-	watchedDirMap           map[string] /*path*/ bool
-	isDirMap                map[string] /*path*/ bool /** The last time we saw this existing, was it a file or a dir*/
+
+	/** Acquire this before reading/writing any of the above _lock variables. */
+	lock *sync.Mutex
+
+	/** A list of all the paths we have added to fsnotifyWatcher */
+	watchedDirMap map[string] /*path -> */ bool
+
+	/** The last time we saw this existing, was it a file or a dir; used to handle directory deletion case*/
+	isDirMap map[string] /*path -> is directory */ bool
 }
 
+/** Do an initial directory scan to add the new project directory, and kick off the goroutine to handle watcher events.  */
 func startWatcher(cWatcher *CodewindWatcher, path string, projectList *ProjectList, service *WatchService, project *models.ProjectToWatch) error {
 
 	watcher, err := fsnotify.NewWatcher()
@@ -382,12 +413,11 @@ func startWatcher(cWatcher *CodewindWatcher, path string, projectList *ProjectLi
 					cWatcher.lock.Unlock()
 
 					if isClosed {
-						utils.LogInfo("Ignoring a !ok that was received after the watcher was closed.")
-
+						utils.LogDebug("Ignoring a !ok that was received after the watcher was closed.")
 						// Exit the channel read function, here
 						return
 					} else {
-						utils.LogSevere("!ok from watcher: " + event.Name + " " + event.Op.String() + " " + event.String() + " " + cWatcher.id)
+						utils.LogSevere("!ok from watcher while the watcher was still open: " + event.Name + " " + event.Op.String() + " " + event.String() + " " + cWatcher.id)
 						continue
 					}
 				}
@@ -481,8 +511,6 @@ func startWatcher(cWatcher *CodewindWatcher, path string, projectList *ProjectLi
 								utils.LogSevere("The watch service has nothing to watch, but the root file still exists. This shouldn't happen. Path: " + event.Name)
 							} else {
 								utils.LogInfo("REMOVED - The watch service has nothing to watch, so the watcher is stopping:" + event.Name)
-								// closeWatcherIfNeeded(cWatcher)
-								// service.RemoveRootPath(event.Name, project)
 							}
 
 						}
@@ -583,42 +611,7 @@ func startWatcher(cWatcher *CodewindWatcher, path string, projectList *ProjectLi
 
 }
 
-func walkPathAndAddInternal(path string, cWatcher *CodewindWatcher, newFilesFound *[]string, newDirsFound *[]string) error {
-	_, exists := cWatcher.watchedDirMap[path]
-
-	if !exists {
-		strList := make([]string, 0)
-		strList = append(strList, path)
-
-		cWatcher.watchedDirMap[path] = true
-		err := cWatcher.fsnotifyWatcher.Add(path)
-		utils.LogDebug("Added watch: " + path)
-		if err != nil {
-			utils.LogSevereErr("Unable to walk path: "+path, err)
-		}
-
-		*newDirsFound = append(*newDirsFound, path)
-		files, err := ioutil.ReadDir(path)
-		if err != nil {
-			utils.LogSevereErr("Unable to read directory: "+path, err)
-		} else {
-			// utils.LogDebug("files in path " + path + " - " + strconv.Itoa(len(files)))
-			for _, f := range files {
-
-				val := path + string(os.PathSeparator) + f.Name()
-				if !f.IsDir() {
-					*newFilesFound = append(*newFilesFound, val)
-				} else {
-					walkPathAndAddInternal(val, cWatcher, newFilesFound, newDirsFound)
-				}
-
-			}
-		}
-	}
-
-	return nil
-}
-
+/** Begin to recursively scan pathParam */
 func walkPathAndAdd(pathParam string, cWatcher *CodewindWatcher) ([]string, []string, error) {
 	utils.LogDebug("Beginning to walk path " + pathParam)
 
@@ -641,6 +634,45 @@ func walkPathAndAdd(pathParam string, cWatcher *CodewindWatcher) ([]string, []st
 	return newFilesFound, newDirsFound, nil
 }
 
+/**
+ * Recursively scan pathParam, and add a new fsnotify watch for the path if it isn't already watched.
+ * For any files found in the directory, add them to newFilesFound (as these need to be CREATE entries) */
+func walkPathAndAddInternal(path string, cWatcher *CodewindWatcher, newFilesFound *[]string, newDirsFound *[]string) error {
+	_, exists := cWatcher.watchedDirMap[path]
+
+	if !exists {
+		strList := make([]string, 0)
+		strList = append(strList, path)
+
+		cWatcher.watchedDirMap[path] = true
+		err := cWatcher.fsnotifyWatcher.Add(path)
+		utils.LogDebug("Added watch: " + path)
+		if err != nil {
+			utils.LogSevereErr("Unable to walk path: "+path, err)
+		}
+
+		*newDirsFound = append(*newDirsFound, path)
+		files, err := ioutil.ReadDir(path)
+		if err != nil {
+			utils.LogSevereErr("Unable to read directory: "+path, err)
+		} else {
+			// For each of the files in the directory, add them to 'new files found' array, otherwise recurse
+			for _, f := range files {
+
+				val := path + string(os.PathSeparator) + f.Name()
+				if !f.IsDir() {
+					*newFilesFound = append(*newFilesFound, val)
+				} else {
+					walkPathAndAddInternal(val, cWatcher, newFilesFound, newDirsFound)
+				}
+
+			}
+		}
+	}
+
+	return nil
+}
+
 func newWatchEventEntry(eventType string, path string, isDir bool) (*models.WatchEventEntry, error) {
 	path = strings.ReplaceAll(path, "\\", "/")
 	path = utils.ConvertFromWindowsDriveLetter(path)
@@ -658,6 +690,7 @@ func newWatchEventEntry(eventType string, path string, isDir bool) (*models.Watc
 	}, nil
 }
 
+/** Start a new goroutine to communicate to the server the success/failure of the initial watch. */
 func informWatchSuccessStatus(ptw *models.ProjectToWatch, success bool, baseURL string, service *WatchService) {
 
 	go func() {

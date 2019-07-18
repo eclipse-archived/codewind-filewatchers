@@ -19,9 +19,24 @@ import { ExponentialBackoffUtil } from "./ExponentialBackoffUtil";
 import { FileWatcher } from "./FileWatcher";
 import { ProjectToWatch } from "./ProjectToWatch";
 
+/**
+ * This class is responsible for issuing a GET request to the server in order to
+ * retrieve the latest list of projects to watch (including their path, and any
+ * filters).
+ *
+ * A new GET request will be sent by this class on startup, and after startup,
+ * a GET request will be sent either:
+ * - whenever the WebSocket connection fails
+ * - or otherwise, once every X seconds (eg 120)
+ *
+ * WebSocketManagerThread is responsible for informing this class when the
+ * WebSocket connection fails (input), and this class calls the Filewatcher
+ * class with the data from the GET request (containing any project watch
+ * updates received) as output.
+ */
 export class HttpGetStatusThread {
 
-    public static readonly REFRESH_EVERY_X_SECONDS = 60;
+    public static readonly REFRESH_EVERY_X_SECONDS = 120;
 
     private _baseUrl: string;
 
@@ -152,10 +167,11 @@ export class HttpGetStatusThread {
         if (this._timer != null) {
             clearTimeout(this._timer);
         }
-        // Refresh every 120 seconds.
+
+        // Refresh every X seconds (eg 120)
         this._timer = setTimeout(() => {
             this.queueStatusUpdate();
-        }, 120 * 1000);
+        }, HttpGetStatusThread.REFRESH_EVERY_X_SECONDS * 1000);
 
     }
 

@@ -20,8 +20,10 @@ import os = require("os");
 import path = require("path");
 import { IWatchService } from "./IWatchService";
 import { WatchService } from "./WatchService";
+
 /**
- *
+ * This is the client-facing constructor for the filewatcher (and should only be called
+ * once per Codewind server instance).
  * @param codewindURL - Eg, http://localhost:9090
  * @param logDir - Directory to write logs to, by default ~/.codewind.
  */
@@ -68,5 +70,3 @@ export default async function createWatcher(codewindURL: string, logDir?: string
 
     return fw;
 }
-
-// createWatcher("http://localhost:9090");

@@ -15,6 +15,13 @@ import path = require("path");
 import { LogSettings } from "./Logger";
 import * as log from "./Logger";
 
+/**
+ * A file-based logger that maintains at most only the last (2 *
+ * MAX_LOG_FILE_SIZE)-1 bytes, in at most 2 log files. Log files are stored in
+ * the given directory.
+ *
+ * At most 2 log files will exist at any one time: n-1, n
+ */
 export class FileLogger {
 
     public static readonly FILE_PREFIX = "filewatcherd-";
@@ -56,10 +63,12 @@ export class FileLogger {
         if (this._fd === -2) { return; }
 
         if (!this._initialized) {
+            // Initialize
             if (fs.existsSync(this._logDir)) {
                 if (!this._initialized) {
                     this._initialized  = true;
 
+                    // Delete any old logs that exist
                     const list = fs.readdirSync(this._logDir);
                     for (const val of list) {
 
@@ -76,9 +85,10 @@ export class FileLogger {
         }
 
         if (this._fd < 0 || this._bytesWritten > FileLogger.MAX_LOG_FILE_SIZE) {
+            // If the file descriptor has not yet been set, or we've overflown our log, then create a new file
             if (this._fd === -2) { return; }
 
-            if (this._fd >= 0) {
+            if (this._fd >= 0) { // Close old file
                 fs.close(this._fd, (e) => {
                     console.error("Unable to close file descriptor.");
                 });
@@ -102,9 +112,11 @@ export class FileLogger {
 
             this._fd = -2;
 
+            // Open the new file and store as a file descriptor
             this._fd = fs.openSync(pathVar, "a");
         }
 
+        // Append the log statement to the file
         if (this._fd >= 0) {
             fs.appendFileSync(this._fd, str + os.EOL, "utf8");
             this._bytesWritten += str.length;

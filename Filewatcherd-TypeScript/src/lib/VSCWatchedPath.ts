@@ -4,6 +4,15 @@ import { ProjectToWatch } from "./ProjectToWatch";
 import { VSCodeResourceWatchService } from "./VSCodeResourceWatchService";
 import { WatchEventEntry } from "./WatchEventEntry";
 
+/**
+ * The entry in VSCodeResourceWatchService for an individual directory to
+ * (recursively) watch. There should be a 1-1 relationship between WatchedPath
+ * objects and projects that are monitored on behalf of the server.
+ *
+ * The receiveFileChanges(...) method is called by the parent, from which we
+ * process and filter the change, then pass it to filewatcher core through the
+ * IPlatformWatchListener interface.
+ */
 export class VSCWatchedPath {
 
     private readonly _pathInNormalizedForm: string;

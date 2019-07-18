@@ -11,6 +11,11 @@
 
 import * as we from "./WatchEventEntry";
 
+/**
+ * Simple representation of a single change: the file/dir path that changed,
+ * what type of change, and when. These are then consumed by the batch
+ * processing utility.
+ */
 export class ChangedFileEntry {
     private readonly _eventType: we.EventType;
 
@@ -40,7 +45,6 @@ export class ChangedFileEntry {
         };
 
         return result;
-
     }
 
     public get timestamp(): number {
@@ -60,6 +64,7 @@ export class ChangedFileEntry {
     }
 }
 
+/** Represents a single file change that is then communicated and sent in the HTTP POST request. */
 export interface IChangedFileEntryJson {
     path: string;
     timestamp: number;

@@ -15,6 +15,7 @@ import (
 	"sort"
 )
 
+/** ChunkGroupPriorityList maintains a pseudo priority queue of chunk groups, sorted ascending by chunk group timestamp */
 type ChunkGroupPriorityList struct {
 	list []*PostQueueChunkGroup
 }

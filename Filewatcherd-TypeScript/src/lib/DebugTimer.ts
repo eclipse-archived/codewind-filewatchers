@@ -12,6 +12,15 @@
 import { FileWatcher } from "./FileWatcher";
 import * as log from "./Logger";
 
+/**
+ * Every X minutes, this timer will run and output the internal state of
+ * each of the internal components of the filewatcher. This should run
+ * infrequently, as it can be fairly verbose (eg every 30 minutes).
+ *
+ * The goal of this timer is to identify bugs/performance issues that might only
+ * be detectable when the filewatcher is running for long periods of time (memory
+ * leaks, resources we aren't closing, etc).
+ */
 export class DebugTimer {
 
     private readonly _parent: FileWatcher;

@@ -9,6 +9,10 @@
 *     IBM Corporation - initial API and implementation
 *******************************************************************************/
 
+/**
+ * Implements an exponential backoff, which increases the delay between requests
+ * when a request failure occurs, and resets the delay on success.
+ */
 export class ExponentialBackoffUtil {
 
     public static getDefaultBackoffUtil(maxFailureDelay: number): ExponentialBackoffUtil {

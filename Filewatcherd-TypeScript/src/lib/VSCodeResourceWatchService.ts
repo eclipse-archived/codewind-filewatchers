@@ -16,6 +16,16 @@ import { ProjectToWatch } from "./ProjectToWatch";
 import { VSCWatchedPath } from "./VSCWatchedPath";
 import { WatchEventEntry } from "./WatchEventEntry";
 
+/**
+ * This class works with the VSCode resource workbench monitoring functionality
+ * to identify file/folder changes, and pass them to the FW core code.
+ *
+ * Specifically, a WatchEventEntry is created for each file/folder change, and the passes it to this class.
+ * Next, this class passes it to the appropriate VSCWatchedPath, which then
+ * processes it and forwards it to the core FW code.
+ *
+ * See IWatchService for more information on watch services.
+ */
 export class VSCodeResourceWatchService implements IWatchService {
 
     private readonly _projIdToWatchedPaths = new Map<string /* project Id to Watched Path */, VSCWatchedPath>();
