@@ -16,6 +16,12 @@ import { ProjectToWatch } from "./ProjectToWatch";
 import { IWatchService } from "./IWatchService";
 import * as log from "./Logger";
 
+/**
+ * Information maintained for each project that is being monitored by the watcher.
+ * This includes information on what to watch/filter (the ProjectToWatch object),
+ * the batch util (one batch util object exists per project), and which watch
+ * service (internal/external) is being used for this project.
+ */
 export class ProjectObject {
 
     private _batchUtil: FileChangeEventBatchUtil;
@@ -42,7 +48,6 @@ export class ProjectObject {
         if (existingProjectToWatch.pathToMonitor !== newProjectToWatch.pathToMonitor ) {
 
             const msg = "The pathToMonitor of a project cannot be changed once it is set, for a particular project id";
-
             log.severe(msg);
         }
 

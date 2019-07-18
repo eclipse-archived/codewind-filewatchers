@@ -11,11 +11,21 @@
 
 import { PostQueueChunkGroup } from "./PostQueueChunkGroup";
 
+/**
+ * A large number of file changes will be split into 'bite-sized pieces' called
+ * chunks. Each chunk communicates a subset of the full change list.
+ *
+ * Instances of this class are immutable.
+ */
 export class PostQueueChunk {
     private readonly _projectId: string;
     private readonly _timestamp: number;
     private readonly _base64Compressed: string;
+
+    /** The ID of a chunk will be 1 <= id <= chunkTotal */
     private readonly _chunkId: number;
+
+    /** The total # of chunks that will e sent for this project id and timestamp. */
     private readonly _chunkTotal: number;
 
     private readonly _parentGroup: PostQueueChunkGroup;

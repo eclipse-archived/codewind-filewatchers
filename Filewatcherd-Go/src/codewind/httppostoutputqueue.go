@@ -22,6 +22,15 @@ import (
 	"time"
 )
 
+/**
+ * This class is responsible for informing the server (via HTTP post request) of
+ * any file/directory changes that have occurred.
+ *
+ * The eventbatchutil.go functions (indirectly) calls this code with a list of
+ * base-64+compressed strings (containing the list of changes), and then this
+ * code breaks the changes down into small chunks and sends them in the body of
+ * individual HTTP POST requests.
+ */
 type HttpPostOutputQueue struct {
 	url                 string
 	workInputChannel    chan *PostQueueChannelMessage
@@ -59,7 +68,7 @@ func NewHttpPostOutputQueue(url string) (*HttpPostOutputQueue, error) {
 	return result, nil
 }
 
-func (postQueue *HttpPostOutputQueue) AddToQueue(projectIDParam string, timestamp int64, base64Compressed []string) {
+func (queue *HttpPostOutputQueue) AddToQueue(projectIDParam string, timestamp int64, base64Compressed []string) {
 
 	chunkGroup := &PostQueueChunkGroup{
 		make(map[int]*PostQueueChunk, 0),
@@ -83,7 +92,7 @@ func (postQueue *HttpPostOutputQueue) AddToQueue(projectIDParam string, timestam
 
 	}
 
-	postQueue.workInputChannel <- &PostQueueChannelMessage{
+	queue.workInputChannel <- &PostQueueChannelMessage{
 		chunkGroup,
 	}
 
@@ -91,10 +100,10 @@ func (postQueue *HttpPostOutputQueue) AddToQueue(projectIDParam string, timestam
 
 }
 
-func (postQueue *HttpPostOutputQueue) RequestDebugMessage() chan string {
+func (queue *HttpPostOutputQueue) RequestDebugMessage() chan string {
 	result := make(chan string)
 
-	postQueue.requestDebugChannel <- result
+	queue.requestDebugChannel <- result
 
 	return result
 }
@@ -170,6 +179,7 @@ func (queue *HttpPostOutputQueue) workManager() {
 
 }
 
+/** Start a new goroutine to send POST requests, if there is more work available and we are not at max workers. */
 func (queue *HttpPostOutputQueue) queueMoreWorkIfNeeded(priorityList *ChunkGroupPriorityList, currActiveWorkers int, MaxWorkers int, backoff *utils.ExponentialBackoff, workCompleteChannel chan *PostQueueWorkResultChannel) int {
 
 	// While there is both more work available, and at least one free worker to do the work
@@ -197,6 +207,7 @@ func (queue *HttpPostOutputQueue) queueMoreWorkIfNeeded(priorityList *ChunkGroup
 
 }
 
+/** Call 'sendPost' then communicate the result back on the repsonse channel. */
 func (queue *HttpPostOutputQueue) doRequest(work *PostQueueChunk, workCompleteChannel chan *PostQueueWorkResultChannel, failureDelay int) {
 
 	// Wait before issuing a request, due to a previous failed request
@@ -220,6 +231,7 @@ func (queue *HttpPostOutputQueue) doRequest(work *PostQueueChunk, workCompleteCh
 	utils.LogDebug("Work signaled on workCompleteChannel in HTTP post queue")
 }
 
+/** Construct and send the HTTP POST request, and return an error on either failure or !200 */
 func (queue *HttpPostOutputQueue) sendPost(chunk *PostQueueChunk) error {
 
 	buffer := bytes.NewBufferString("{\"msg\" : \"" + chunk.base64Compressed + "\"}")

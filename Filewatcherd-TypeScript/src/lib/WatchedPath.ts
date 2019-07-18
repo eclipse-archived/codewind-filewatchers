@@ -24,6 +24,19 @@ import { existsSync, readdir, statSync } from "fs";
 import pathLib = require("path");
 import { convertAbsolutePathWithUnixSeparatorsToProjectRelativePath, normalizePath } from "./PathUtils";
 
+/**
+ * The entry in WatchService for an individual directory to (recursively) watch. There
+ * should be a 1-1 relationship between WatchedPath objects and projects that are
+ * monitored on behalf of the server.
+ *
+ * Change events are first detected via the 3rd party Chokidar library. We takes those
+ * events, do some initial processing, then pass them to watch service (which will forward
+ * them on FileWatcher).
+ *
+ * This class also handles the case where we are asked to watch a directory that doesn't
+ * yet exist. We will wait up to 5 minutes for a directory to exist, before we report an error
+ * back to the server.
+ */
 export class WatchedPath {
 
     private readonly _pathRoot: string;
@@ -73,7 +86,6 @@ export class WatchedPath {
                 log.info("Waiting for path to exist: " + this._pathRoot);
             }
 
-            // TODO: Replace this with a monotonically increasing time value
             if (new Date().getTime() - startTime.getTime() > 60 * 5 * 1000) {
                 // After 5 minutes, stop waiting for the watch and report the error
                 log.error("Watch failed on " + this._pathRoot);

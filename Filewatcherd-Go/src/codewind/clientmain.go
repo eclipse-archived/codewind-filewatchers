@@ -17,6 +17,8 @@ import (
 	"time"
 )
 
+/* This is the entrypoint for the application.
+ * The application takes one optional argument, which is the URL of the Codewind server. */
 func main() {
 
 	// Default URL if no args

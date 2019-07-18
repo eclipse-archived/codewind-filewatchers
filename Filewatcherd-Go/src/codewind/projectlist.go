@@ -18,6 +18,16 @@ import (
 	"time"
 )
 
+/**
+ * ProjectList is the API entrypoint for other code in this application to perform operations against monitored projects:
+ * - Update project list from a GET response
+ * - Update project list from a WebSocket response
+ * - Process a file update and pass it to batch utility
+ *
+ * Behind the scenes, the ProjectList API calls are translated into channel messages and placed on the projectOperationChannel.
+ * This allows us to provide thread safety to the internal project list data, as that data will only ever be accessed
+ * by a single goroutine.
+ */
 type ProjectList struct {
 	projectOperationChannel chan *projectListChannelMessage
 }
@@ -135,6 +145,7 @@ func (projectList *ProjectList) channelListener(postOutputQueue *HttpPostOutputQ
 	}
 }
 
+/** Generate an overview of the state of the project list, including the projects being watched. */
 func (projectList *ProjectList) handleRequestDebugMsg(projectsMap map[string]*projectObject) string {
 	result := ""
 	for projectID, obj := range projectsMap {
@@ -164,6 +175,9 @@ func (projectList *ProjectList) handleRequestDebugMsg(projectsMap map[string]*pr
 
 }
 
+/**
+ * This function processes data that is from the GET API response; we use this to synchronize the list of projects
+ * that we are watching with what the server wants us to watch.  */
 func (projectList *ProjectList) handleUpdateProjectListFromGetRequest(entries *models.WatchlistEntries, projectsMap map[string]*projectObject, watchService *WatchService, postOutputQueue *HttpPostOutputQueue) {
 
 	// Delete projects that are not in the entries list
@@ -222,6 +236,13 @@ func (projectList *ProjectList) handleUpdateProjectListFromGetRequest(entries *m
 
 }
 
+/**
+ * This function processes data that is from the WebSocket endpoint event; we use this to add/remove/update the list of projects
+ * that we are watching with what the server wants us to watch.
+ *
+ * The difference between 'update from GET' and 'update from WebSocket' is that 'update from GET' does not indicate
+ * how the project list changes, whereas 'update from WebSocket' does via the 'ChangeType'
+ */
 func (projectList *ProjectList) handleUpdateProjectListFromWebSocket(webSocketUpdates *models.WatchChangeJson, projectsMap map[string]*projectObject, watchService *WatchService, postOutputQueue *HttpPostOutputQueue) {
 
 	utils.LogInfo("Processing a received file watch state from WebSocket")
@@ -256,6 +277,9 @@ func (projectList *ProjectList) handleUpdateProjectListFromWebSocket(webSocketUp
 
 }
 
+/**
+ * Synchronize the project in our projectsMap (if it exists), with the new 'projectToProcess' from the server.
+ * If it doesn't exist, create it.*/
 func processProject(projectToProcess models.ProjectToWatch, projectsMap map[string]*projectObject, postOutputQueue *HttpPostOutputQueue, watchService *WatchService) {
 
 	currProjWatchState, exists := projectsMap[projectToProcess.ProjectID]
@@ -321,6 +345,7 @@ func processProject(projectToProcess models.ProjectToWatch, projectsMap map[stri
 
 }
 
+/** This function is called with a new file change entry, which is filtered (if necessary) then patched to the project's batch utility object.  */
 func handleReceiveNewWatchEventEntries(projectMatch *models.ProjectToWatch, entry *models.WatchEventEntry, projectsMap map[string]*projectObject) {
 
 	utils.LogDebug("Received new watch entry: " + entry.EventType + " " + entry.Path + " " + projectMatch.ProjectID)
@@ -377,6 +402,12 @@ func handleReceiveNewWatchEventEntries(projectMatch *models.ProjectToWatch, entr
 
 }
 
+/**
+ * Information maintained for each project that is being monitored by the
+ * watcher. This includes information on what to watch/filter (the
+ * ProjectToWatch), the batch util (one batch util object exists per project),
+ * and which watch service (internal/external) is being used for this project.
+ */
 type projectObject struct {
 	project        *models.ProjectToWatch
 	eventBatchUtil *FileChangeEventBatchUtil

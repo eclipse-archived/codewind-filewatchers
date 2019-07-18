@@ -16,13 +16,27 @@ import * as log from "./Logger";
 import { PostQueueChunk } from "./PostQueueChunk";
 import { PostQueueChunkGroup } from "./PostQueueChunkGroup";
 
+/**
+ * This class is responsible for informing the server (via HTTP POST request) of
+ * any file/directory changes that have occurred.
+ *
+ * The FileChangeEventBatchUtil (indirectly) calls this class with a list of
+ * base-64+compressed strings (containing the list of changes), and then this
+ * class breaks the changes down into small chunks and sends them in the body of
+ * individual HTTP POST requests.
+ */
 export class HttpPostOutputQueue {
     private static readonly MAX_ACTIVE_REQUESTS = 3;
 
+    /**
+     * On other platforms we use a priority queue here, sorted ascending by timestamp; here we use a list, and just sort
+     * it every time we add to it, to achieve the same goal.
+     */
     private readonly _queue: PostQueueChunkGroup[];
 
     private readonly _serverBaseUrl: string;
 
+    /** Number of I/O threads that are currently busy attempting to send HTTP POST requests */
     private _activeRequests: number;
 
     private _disposed: boolean = false;
@@ -35,8 +49,6 @@ export class HttpPostOutputQueue {
         this._activeRequests = 0;
         this._failureDelay = ExponentialBackoffUtil.getDefaultBackoffUtil(4000);
     }
-
-    // TODO: Remove OutputQueueEntry when HttpPostOutputQueueOld is removed.
 
     public async informStateChangeAsync() {
         // While there is more work, and we are below request capacity

@@ -25,6 +25,18 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+/**
+ * The purpose of the WebSocket Connection Manager is to initiate and maintain the WebSocket
+ * connection between the filewatcher and the server.
+ *
+ * After queueEstablishConnection(...) is called, we will keep trying to connect
+ * to the server until it succeeds. If that connection ever goes down for any
+ * reason, queueEstablishConnection() still start the reconnection process over
+ * again.
+ *
+ * This class also sends a simple "keep alive" packet every X seconds (eg 25).
+ */
+
 type ReconnectMessage int
 
 const (

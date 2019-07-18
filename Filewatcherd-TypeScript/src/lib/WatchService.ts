@@ -17,6 +17,13 @@ import { WatchEventEntry } from "./WatchEventEntry";
 import * as log from "./Logger";
 import { ProjectToWatch } from "./ProjectToWatch";
 
+/**
+ * This class uses the directory/file monitoring functionality of the 3rd party
+ * Chokidar library for file monitoring (but most of the interface with Chokidar
+ * is in WatchedPath)
+ *
+ * See IPlatformWatchService for general information on watch services.
+ */
 export class WatchService implements IWatchService {
 
     private _parent: FileWatcher;

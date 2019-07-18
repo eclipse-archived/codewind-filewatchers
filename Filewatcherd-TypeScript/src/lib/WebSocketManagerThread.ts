@@ -19,6 +19,17 @@ import { ProjectToWatchFromWebSocket } from "./ProjectToWatchFromWebSocket";
 
 import * as log from "./Logger";
 
+/**
+ * The purpose of this class is to initiate and maintain the WebSocket
+ * connection between the filewatcher and the server.
+ *
+ * After queueEstablishConnection(...) is called, we will keep trying to connect
+ * to the server until it succeeds. If that connection ever goes down for any
+ * reason, queueEstablishConnection() still start the reconnection process over
+ * again.
+ *
+ * This class also sends a simple "keep alive" packet every X seconds (eg 25).
+ */
 export class WebSocketManagerThread {
 
     private static readonly SEND_KEEPALIVE_EVERY_X_SECONDS = 25;
@@ -27,6 +38,7 @@ export class WebSocketManagerThread {
 
     private readonly _parent: FileWatcher;
 
+    /** Maintains a reference to the previous websocket, to ensure it is closed when we open a new one */
     private _previousWebSocket: WebSocket;
 
     private _previousWebSocketInterval: NodeJS.Timer;
@@ -199,7 +211,7 @@ export class WebSocketManagerThread {
                     if (ws.readyState === ws.OPEN) {
                         try { ws.send("{}"); } catch (e) { /* ignore*/ }
                     }
-                }, 25 * 1000);
+                }, WebSocketManagerThread.SEND_KEEPALIVE_EVERY_X_SECONDS * 1000);
 
             }
 

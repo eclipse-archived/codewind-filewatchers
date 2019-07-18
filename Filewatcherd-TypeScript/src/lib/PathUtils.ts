@@ -11,6 +11,15 @@
 
 import * as log from "./Logger";
 
+/**
+ * Various utilities related to converting Windows-style paths (ex: c:\Users)
+ * to/from our standardized Unix-style format (ex: /C/users), in order to
+ * conform to our watcher API specification.
+ */
+
+/**
+ * A windows absolute path will begin with a letter followed by a colon: C:\
+ */
 function isWindowsAbsolutePath(absolutePath: string): boolean {
     if (absolutePath.length < 2) {
         return false;

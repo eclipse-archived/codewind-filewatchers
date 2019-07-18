@@ -12,6 +12,14 @@
 import * as models from "./Models";
 import { ProjectToWatch } from "./ProjectToWatch";
 
+/**
+ * The watcher WebSocket will inform of us of project watch changes just like
+ * the GET watchlist API, except that the WebSocket JSON has an additional field
+ * 'changeType' which specifies how the watched project changed: for example, if
+ * a project is deleted or created, this field will indicate as such.
+ *
+ * Absent the above field, this object has the same structure as its parent.
+ */
 export class ProjectToWatchFromWebSocket extends ProjectToWatch {
 
     private readonly _changeType: string;

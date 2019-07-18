@@ -17,6 +17,15 @@ import (
 	"time"
 )
 
+/**
+ * Every X minutes, this timer thread will run and output the internal state of
+ * each of the internal components of the filewatcher. This should run
+ * infrequently, as it can be fairly verbose (eg every 30 minutes).
+ *
+ * The goal of this timer is to identify bugs/performance issues that might only
+ * be detectable when the workbench is open for long periods of time (memory
+ * leaks, resources we aren't closing, etc).
+ */
 type DebugTimer struct {
 	watchService    *WatchService
 	projectList     *ProjectList

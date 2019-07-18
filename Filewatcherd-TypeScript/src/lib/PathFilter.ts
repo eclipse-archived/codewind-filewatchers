@@ -14,6 +14,11 @@ import { ProjectToWatch } from "./ProjectToWatch";
 
 import * as log from "./Logger";
 
+/**
+ * This class is responsible for taking the filename/path filters for a project
+ * on the watched projects list, and applying those filters against a given path
+ * string (returning true if a filter should be ignored).
+ */
 export class PathFilter {
 
     private readonly _filenameExcludePatterns: RegExp[] = [];

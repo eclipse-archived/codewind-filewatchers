@@ -16,10 +16,27 @@ import * as log from "./Logger";
 
 export enum ChunkStatus { AVAILABLE_TO_SEND, WAITING_FOR_ACK, COMPLETE }
 
+/**
+ * The 'chunk group' maintains the list of chunks for a specific timestamp that
+ * we are currently trying to send to the server.
+ *
+ * Each chunk in the chunk group is in one of these states:
+ * - AVAILABLE_TO_SEND: Chunks in this state are available to be sent by the next available worker.
+ * - WAITING_FOR_ACK: Chunks in this state are in the process of being sent by one of the workers.
+ * - COMPLETE: Chunks in this state have been sent and acknowledged by the server.
+ *
+ * The primary goal of chunk groups is to ensure that chunks will never be sent
+ * to the server out of ascending-timestamp order: eg we will never send the
+ * server a chunk of 'timestamp 20', then a chunk of 'timestamp 19'. The
+ * 'timestamp 20' chunks will wait for all of the 'timestamp 19' chunks to be
+ * sent.
+ */
 export class PostQueueChunkGroup {
-    private readonly _chunkMap: Map<number, PostQueueChunk> = new Map();
 
-    private readonly _chunkStatus: Map<number, ChunkStatus> = new Map();
+    /** List of chunks; this map is immutable once created (as are the chunks themselves) */
+    private readonly _chunkMap: Map<number /* chunk id*/, PostQueueChunk> = new Map();
+
+    private readonly _chunkStatus: Map<number /* chunk id*/, ChunkStatus> = new Map();
 
     private readonly _parent: HttpPostOutputQueue;
 
@@ -56,6 +73,7 @@ export class PostQueueChunkGroup {
         return true;
     }
 
+    /** Called by a worker thread to report a successful send. */
     public informPacketSent(chunk: PostQueueChunk): void {
 
         const val = this._chunkStatus.get(chunk.chunkId);
@@ -70,6 +88,10 @@ export class PostQueueChunkGroup {
         this._parent.informStateChangeAsync();
     }
 
+    /**
+     * Called by a worker to report a failed send; we make the chunk
+     * available to send by another worker.
+     */
     public informPacketFailedToSend(chunk: PostQueueChunk): void {
 
         const val = this._chunkStatus.get(chunk.chunkId);

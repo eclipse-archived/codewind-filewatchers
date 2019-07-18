@@ -28,6 +28,14 @@ import { ExponentialBackoffUtil } from "./ExponentialBackoffUtil";
 import { IWatchService } from "./IWatchService";
 import * as log from "./Logger";
 
+/**
+ * This class maintains information about the projects being watched, and is
+ * otherwise the "glue" between the other components. The class maintains
+ * references to the other utilities (post queue, WebSocket connection, watch
+ * service, etc) and forwards communication between them.
+ *
+ * Only one instance of this object will exist per server.
+ */
 export class FileWatcher {
 
     private readonly _projectsMap: Map<string /* project id*/, ProjectObject>;
@@ -108,7 +116,7 @@ export class FileWatcher {
             }
         }
 
-        removedProjects.forEach( (e) => {
+        removedProjects.forEach((e) => {
             this.removeSingleProjectToWatch(e);
         });
 
@@ -236,6 +244,10 @@ export class FileWatcher {
         this._getStatusThread.queueStatusUpdate();
     }
 
+    /**
+     * Inform the Codewind server of the success or failure of the project watch. Issues a PUT request to the server,
+     * and keeps trying until the request succeeds.
+     */
     public async sendWatchResponseAsync(successParam: boolean, ptw: ProjectToWatch): Promise<void> {
         if (this._disposed) { return; }
 
@@ -304,7 +316,7 @@ export class FileWatcher {
         this._outputQueue.dispose();
         this._webSocketManager.dispose();
 
-        this._projectsMap.forEach( (e) => {
+        this._projectsMap.forEach((e) => {
             e.batchUtil.dispose();
         });
 
@@ -339,7 +351,7 @@ export class FileWatcher {
 
             if (ptw.ignoredPaths.length > 0) {
                 result += " | ignoredPaths: ";
-                for (const path of  ptw.ignoredPaths) {
+                for (const path of ptw.ignoredPaths) {
                     result += "'" + path + "' ";
                 }
             }
@@ -383,7 +395,7 @@ export class FileWatcher {
 
         if (po === undefined) {
 
-            let watchService =  this._internalWatchService;
+            let watchService = this._internalWatchService;
 
             // Determine which watch service to use, based on what was provided in the
             // FW constructor, and what is specified in the JSON object.
@@ -393,7 +405,7 @@ export class FileWatcher {
 
             if (watchService == null) {
                 log.severe("Watch service for the new project was null; this shouldn't happen. projectId: "
-                        + ptw.projectId + " path: " + ptw.pathToMonitor);
+                    + ptw.projectId + " path: " + ptw.pathToMonitor);
                 return;
             }
 
