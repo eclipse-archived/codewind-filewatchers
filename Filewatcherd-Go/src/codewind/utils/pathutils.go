@@ -143,6 +143,11 @@ func ConvertAbsoluteUnixStyleNormalizedPathToLocalFileOS(str string, isWindows b
 
 }
 
+/**
+ * This type is responsible for taking the filename/path filters for a project
+ * on the watched projects list, and applying those filters against a given path
+ * string (returning true if a filter should be ignored).
+ */
 type PathFilter struct {
 	filenameExcludePatterns []*regexp.Regexp
 	pathExcludePatterns     []*regexp.Regexp
