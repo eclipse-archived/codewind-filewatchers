@@ -27,11 +27,9 @@ pipeline {
                     sh '''
                         java -version
                         which java    
+                        
+                        # Place hoder for build script
                     '''
-                    
-                    dir('org.eclipse.codewind.filewatchers.core') { sh 'mvn clean install' }
-                    dir('org.eclipse.codewind.filewatchers.standalonenio') { sh 'mvn clean install' }
-                    dir('org.eclipse.codewind.filewatchers.eclipse') { sh 'mvn clean package' }                    
                 }
             }
         } 
@@ -50,9 +48,8 @@ pipeline {
         	
                   	ssh genie.codewind@projects-storage.eclipse.org rm -rf /home/data/httpd/download.eclipse.org/codewind/codewind-filewatchers/$(UPLOAD_DIR)
                   	ssh genie.codewind@projects-storage.eclipse.org mkdir -p /home/data/httpd/download.eclipse.org/codewind/codewind-filewatchers/$(UPLOAD_DIR)
-                  	scp -r ${WORKSPACE}/org.eclipse.codewind.filewatchers.core/target/org.eclipse.codewind.filewatchers*.jar genie.codewind@projects-storage.eclipse.org:/home/data/httpd/download.eclipse.org/codewind/codewind-filewatchers/$(UPLOAD_DIR)
-                  	scp -r ${WORKSPACE}/org.eclipse.codewind.filewatchers.standalonenio/target/org.eclipse.codewind.filewatchers*.jar genie.codewind@projects-storage.eclipse.org:/home/data/httpd/download.eclipse.org/codewind/codewind-filewatchers/$(UPLOAD_DIR)
-                  	scp -r ${WORKSPACE}/org.eclipse.codewind.filewatchers.eclipse/target/org.eclipse.codewind.filewatchers*.jar genie.codewind@projects-storage.eclipse.org:/home/data/httpd/download.eclipse.org/codewind/codewind-filewatchers/$(UPLOAD_DIR)
+                  	
+                  	# Place hoder for deploy script
                   '''
                 }
             }
