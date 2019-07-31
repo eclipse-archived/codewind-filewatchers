@@ -44,10 +44,19 @@ export class PostQueueChunkGroup {
 
     private readonly _projectId: string;
 
-    constructor(timestamp: number, projectId: string, base64Compressed: string[], parent: HttpPostOutputQueue) {
+    /**
+     * After X hours (eg 24), give up on trying to send this chunk group to the
+     * server. At this point the data is too stale to be useful.
+     */
+    private readonly _expireTime: number;
+
+    constructor(timestamp: number, projectId: string, expireTime: number, base64Compressed: string[],
+                parent: HttpPostOutputQueue) {
+
         this._parent = parent;
         this._timestamp = timestamp;
         this._projectId = projectId;
+        this._expireTime = expireTime;
 
         let chunkId = 1;
 
@@ -136,5 +145,9 @@ export class PostQueueChunkGroup {
 
     public get projectId(): string {
         return this._projectId;
+    }
+
+    public get expireTime(): number {
+        return this._expireTime;
     }
 }

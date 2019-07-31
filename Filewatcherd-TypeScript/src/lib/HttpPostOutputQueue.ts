@@ -29,6 +29,12 @@ export class HttpPostOutputQueue {
     private static readonly MAX_ACTIVE_REQUESTS = 3;
 
     /**
+     * After X hours (eg 24), give up on trying to send this chunk group to the
+     * server. At this point the data is too stale to be useful.
+     */
+    private static readonly CHUNK_GROUP_EXPIRE_TIME_IN_MSECS = 1000 * 60 * 60 * 24;
+
+    /**
      * On other platforms we use a priority queue here, sorted ascending by timestamp; here we use a list, and just sort
      * it every time we add to it, to achieve the same goal.
      */
@@ -78,7 +84,8 @@ export class HttpPostOutputQueue {
 
         log.info("addToQueue called with " + base64Compressed.length + " entries.");
 
-        const chunkGroup = new PostQueueChunkGroup(timestamp, projectId, base64Compressed, this);
+        const chunkGroup = new PostQueueChunkGroup(timestamp, projectId,
+            new Date().getTime() + HttpPostOutputQueue.CHUNK_GROUP_EXPIRE_TIME_IN_MSECS, base64Compressed, this);
 
         this._queue.push(chunkGroup);
 
@@ -118,17 +125,32 @@ export class HttpPostOutputQueue {
         return result;
     }
 
-    /** Remove any chunk groups that have already sent all their chunks. */
+    /**
+     * Remove any chunk groups that have already sent all their chunks, or that have
+     * expired (unable to send communication for X hours, eg 24)
+     */
     private cleanupChunkGroups(): void {
         let changeMade = false;
 
+        const currentTime = new Date().getTime();
+
         for (let i = this._queue.length - 1; i >= 0; i--) {
-            if (this._queue[i].isGroupComplete()) {
+
+            const chunkGroup = this._queue[i];
+
+            if (chunkGroup.isGroupComplete()) {
                 this._queue.splice(i, 1);
                 changeMade = true;
+            } else if (currentTime > chunkGroup.expireTime) {
+                this._queue.splice(i, 1);
+                changeMade = true;
+
+                log.severe("Chunk group expired. This implies we could not connect to server for many hours."
+                    + " Chunk-group project: " + chunkGroup.projectId + "  timestamp: " + chunkGroup.timestamp);
             }
         }
         if (changeMade) {
+            // Inform threads waiting for work
             this.informStateChangeAsync();
         }
     }
