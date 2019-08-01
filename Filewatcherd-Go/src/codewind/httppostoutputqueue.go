@@ -57,9 +57,9 @@ func NewHttpPostOutputQueue(url string) (*HttpPostOutputQueue, error) {
 	workChannel := make(chan *PostQueueChannelMessage)
 
 	result := &HttpPostOutputQueue{
-		url,
-		workChannel,
-		make(chan chan string),
+		url:                 url,
+		workInputChannel:    workChannel,
+		requestDebugChannel: make(chan chan string),
 	}
 
 	// Start the work manager goroutine
@@ -71,20 +71,21 @@ func NewHttpPostOutputQueue(url string) (*HttpPostOutputQueue, error) {
 func (queue *HttpPostOutputQueue) AddToQueue(projectIDParam string, timestamp int64, base64Compressed []string) {
 
 	chunkGroup := &PostQueueChunkGroup{
-		make(map[int]*PostQueueChunk, 0),
-		make(map[int]ChunkStatus, 0),
-		timestamp,
+		chunkMap:          make(map[int]*PostQueueChunk, 0),
+		chunkStatus:       make(map[int]ChunkStatus, 0),
+		timestamp:         timestamp,
+		expireTimeInNanos: time.Now().Add(time.Hour * 24).UnixNano(),
 	}
 
 	for index, base64String := range base64Compressed {
 
 		chunk := &PostQueueChunk{
-			index + 1,
-			len(base64Compressed),
-			base64String,
-			projectIDParam,
-			timestamp,
-			chunkGroup,
+			chunkID:          index + 1,
+			chunkTotal:       len(base64Compressed),
+			base64Compressed: base64String,
+			projectID:        projectIDParam,
+			timestamp:        timestamp,
+			parent:           chunkGroup,
 		}
 
 		chunkGroup.chunkMap[chunk.chunkID] = chunk
@@ -176,7 +177,6 @@ func (queue *HttpPostOutputQueue) workManager() {
 			debugResponseChannel <- result
 		}
 	}
-
 }
 
 /** Start a new goroutine to send POST requests, if there is more work available and we are not at max workers. */
@@ -189,6 +189,10 @@ func (queue *HttpPostOutputQueue) queueMoreWorkIfNeeded(priorityList *ChunkGroup
 		chunkGroup := priorityList.Peek()
 		if chunkGroup.IsGroupComplete() {
 			priorityList.Pop()
+			continue
+		} else if time.Now().UnixNano() > chunkGroup.expireTimeInNanos {
+			priorityList.Pop()
+			utils.LogSevere("Chunk group expired. This implies we could not connect to server for many hours.  timestamp: " + strconv.FormatInt(chunkGroup.expireTimeInNanos, 10))
 			continue
 		}
 
@@ -204,7 +208,6 @@ func (queue *HttpPostOutputQueue) queueMoreWorkIfNeeded(priorityList *ChunkGroup
 	}
 
 	return currActiveWorkers
-
 }
 
 /** Call 'sendPost' then communicate the result back on the repsonse channel. */

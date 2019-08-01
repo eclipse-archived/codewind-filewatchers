@@ -42,9 +42,10 @@ const (
  * This class is thread safe.
  */
 type PostQueueChunkGroup struct {
-	chunkMap    map[int] /*chunk id -> */ *PostQueueChunk
-	chunkStatus map[int] /*chunk id -> */ ChunkStatus
-	timestamp   int64
+	chunkMap          map[int] /*chunk id -> */ *PostQueueChunk
+	chunkStatus       map[int] /*chunk id -> */ ChunkStatus
+	timestamp         int64
+	expireTimeInNanos int64
 }
 
 /**
