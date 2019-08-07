@@ -701,7 +701,6 @@ func informWatchSuccessStatus(ptw *models.ProjectToWatch, success bool, baseURL 
 		if !success {
 			successVal = "false"
 		}
-		buffer := bytes.NewBufferString("{\"success\" : \"" + successVal + "\"}")
 
 		url := baseURL + "/api/v1/projects/" + ptw.ProjectID + "/file-changes/" + ptw.ProjectWatchStateID + "/status?clientUuid=" + service.clientUUID
 
@@ -716,7 +715,9 @@ func informWatchSuccessStatus(ptw *models.ProjectToWatch, success bool, baseURL 
 
 			client := &http.Client{Transport: tr}
 
+			buffer := bytes.NewBufferString("{\"success\" : \"" + successVal + "\"}")
 			req, err := http.NewRequest(http.MethodPut, url, buffer)
+
 			req.Header.Set("Content-Type", "application/json")
 
 			if err != nil {
