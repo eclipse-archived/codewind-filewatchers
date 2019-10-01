@@ -42,11 +42,11 @@ pipeline {
                                 done
                                 IFS=' ' # reset to default value after usage
 
-                                TAG_MAJOR = ${RELEASE[0]}     
+                                export TAG_MAJOR = ${RELEASE[0]}     
                                 echo "TAG_MAJOR is $TAG_MAJOR"	
 
-                                TAG_MINOR = ${RELEASE[1]}     
-                                TAG_CUMULATIVE= $TAG_MAJOR.$TAG_MINOR	
+                                export TAG_MINOR = ${RELEASE[1]}     
+                                export TAG_CUMULATIVE= $TAG_MAJOR.$TAG_MINOR	
 
                                 echo "TAG_CUMULATIVE is $TAG_CUMULATIVE"
                                     
