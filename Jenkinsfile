@@ -38,7 +38,7 @@ pipeline {
                                 
                                 read -ra RELEASE <<< "$TEST_BRANCH"    
 
-                                echo ${RELEASE[1]}
+                                echo ${RELEASE[0]}.${RELEASE[1]}
 
                                 
                                 IFS=' ' # reset to default value after usage
