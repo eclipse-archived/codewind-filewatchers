@@ -32,14 +32,23 @@ pipeline {
                             echo "Branch is $TEST_BRANCH"
 
                             if [[ $TEST_BRANCH =~ ^([0-9]+\\.[0-9]+) ]]; then	
-                                #TAG_MAJOR = $TEST_BRANCH.tokenize(".")[0]​	
-                                export TAG_MAJOR = $TEST_BRANCH.tokenize(".")[0]​	
+                                
+                                
+                                IFS='.' # set '.' as delimiter
+                                
+                                read -ra RELEASE <<< "$TEST_BRANCH" 
+                                for i in "${RELEASE[@]}"; do # 
+                                    echo "$i"
+                                done
+                                IFS=' ' # reset to default value after usage
+
+                                TAG_MAJOR = RELEASE[0]​	
                                 echo "TAG_MAJOR is $TAG_MAJOR"	
 
-                                #TAG_MINOR = $TEST_BRANCH.tokenize(".")[1]​	
-                                #TAG_CUMULATIVE= $TAG_MAJOR.$TAG_MINOR	
+                                TAG_MINOR = RELEASE[1]​		
+                                TAG_CUMULATIVE= $TAG_MAJOR.$TAG_MINOR	
                                     
-                                
+
                             fi 
                         fi
                     '''
