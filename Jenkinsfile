@@ -36,15 +36,15 @@ pipeline {
                                 
                                 IFS='.' # set '.' as delimiter
                                 
-                                read -ra RELEASE <<< "$TEST_BRANCH" 
-                                for i in "${RELEASE[@]}"; do  
-                                    echo "$i"
-                                done
+                                read -ra RELEASE <<< "$TEST_BRANCH"    
+
+                                echo ${RELEASE[1]}
+
+                                
                                 IFS=' ' # reset to default value after usage
 
                                 
-                                echo ${RELEASE[@]]:0:2}
-
+                                
                                 #export TAG_MAJOR = "${RELEASE[0]}"     
                                 #echo "TAG_MAJOR is $TAG_MAJOR"	
 
