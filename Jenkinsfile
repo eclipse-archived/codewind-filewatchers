@@ -36,7 +36,7 @@ pipeline {
                                 read -ra RELEASE <<< "$TEST_BRANCH"    
                                 IFS=' ' # reset to default value after usage
 
-                                export TAG_CUMULATIVE = ${RELEASE[0]}.${RELEASE[1]}
+                                export TAG_CUMULATIVE=${RELEASE[0]}.${RELEASE[1]}
                                 echo "TAG_CUMULATIVE is $TAG_CUMULATIVE"	
                             fi 
                         fi
