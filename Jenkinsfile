@@ -33,7 +33,7 @@ pipeline {
 
                             if [[ $TEST_BRANCH =~ ^([0-9]+\\.[0-9]+) ]]; then	
                                 #TAG_MAJOR = $TEST_BRANCH.tokenize(".")[0]​	
-                                TAG_MAJOR = $TEST_BRANCH
+                                export TAG_MAJOR = $TEST_BRANCH.tokenize(".")[0]​	
                                 echo "TAG_MAJOR is $TAG_MAJOR"	
 
                                 #TAG_MINOR = $TEST_BRANCH.tokenize(".")[1]​	
