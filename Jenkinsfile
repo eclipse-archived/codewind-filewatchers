@@ -25,17 +25,18 @@ pipeline {
                     println("JAVE_HOME: ${JAVA_HOME}")
                     
                     sh '''#!/usr/bin/env bash
-                        echo "Branch is $GIT_BRANCH"
+                        export TEST_BRANCH="0.1.0" 
+                        echo "Test Branch is $TEST_BRANCH"
 
-                        if [[ $GIT_BRANCH == "master" ]] || [[ $GIT_BRANCH =~ ^([0-9]+\\.[0-9]+) ]]; then
-                            echo "Branch is $GIT_BRANCH"
+                        if [[ $TEST_BRANCH == "master" ]] || [[ $TEST_BRANCH =~ ^([0-9]+\\.[0-9]+) ]]; then
+                            echo "Branch is $TEST_BRANCH"
 
-                            if [[ $GIT_BRANCH =~ ^([0-9]+\\.[0-9]+) ]]; then	
-                                TAG_MAJOR = $GIT_BRANCH.tokenize(".")[0]​	
-
+                            if [[ $TEST_BRANCH =~ ^([0-9]+\\.[0-9]+) ]]; then	
+                                #TAG_MAJOR = $TEST_BRANCH.tokenize(".")[0]​	
+                                TAG_MAJOR = $TEST_BRANCH
                                 echo "TAG_MAJOR is $TAG_MAJOR"	
 
-                                #TAG_MINOR = $GIT_BRANCH.tokenize(".")[1]​	
+                                #TAG_MINOR = $TEST_BRANCH.tokenize(".")[1]​	
                                 #TAG_CUMULATIVE= $TAG_MAJOR.$TAG_MINOR	
                                     
                                 
