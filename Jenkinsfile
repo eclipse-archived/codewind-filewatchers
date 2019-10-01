@@ -40,7 +40,6 @@ pipeline {
                             do
                                 echo "Publishing $REGISTRY/$i:$TAG"
                                 #./script/publish.sh $i $REGISTRY $TAG
-                                fi 
                             done
 
                             if [[ $TEST_BRANCH =~ ^([0-9]+\\.[0-9]+) ]]; then
