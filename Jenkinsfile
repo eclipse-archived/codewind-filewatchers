@@ -24,22 +24,27 @@ pipeline {
                     println("System information: ${sys_info}")
                     println("JAVE_HOME: ${JAVA_HOME}")
                     
-                    sh '''
-                        java -version
-                        which java    
-                        
-                        # Place hoder for build script
+                    sh '''#!/usr/bin/env bash
+                        echo "Branch is $GIT_BRANCH"
+
+                        if [[ $GIT_BRANCH == "master" ]] || [[ $GIT_BRANCH =~ ^([0-9]+\\.[0-9]+) ]]; then
+                            echo "Branch is $GIT_BRANCH"
+
+                            if [[ $GIT_BRANCH =~ ^([0-9]+\\.[0-9]+) ]]; then	
+                                TAG_MAJOR = $GIT_BRANCH.tokenize(".")[0]​	
+
+                                echo "TAG_MAJOR is $TAG_MAJOR"	
+
+                                #TAG_MINOR = $GIT_BRANCH.tokenize(".")[1]​	
+                                #TAG_CUMULATIVE= $TAG_MAJOR.$TAG_MINOR	
+                                    
+                                
+                            fi 
+                        fi
                     '''
+
                 }
             }
         } 
-        
-        stage('Deploy') {
-            steps {
-                sshagent ( ['projects-storage.eclipse.org-bot-ssh']) {
-                  println("Test deploy...")
-                }
-            }
-        }       
     }    
 }
