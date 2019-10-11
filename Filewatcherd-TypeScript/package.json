@@ -1,6 +1,6 @@
 {
     "name": "codewind-filewatcher",
-    "version": "1.0.0",
+    "version": "0.6.0",
     "description": "File change notification client that recursively monitors project directories and notifies the Codewind server of file changes",
     "repository": "https://github.com/eclipse/codewind-filewatchers/",
     "license": "EPL-2.0",
