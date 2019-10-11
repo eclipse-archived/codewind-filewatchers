@@ -1,7 +1,9 @@
 {
     "name": "codewind-filewatcher",
     "version": "1.0.0",
-    "description": "",
+    "description": "File change notification client that recursively monitors project directories and notifies the Codewind server of file changes",
+    "repository": "https://github.com/eclipse/codewind-filewatchers/",
+    "license": "EPL-2.0",
     "main": "dist/index.js",
     "scripts": {
         "start": "npm run serve",
@@ -9,7 +11,8 @@
         "serve": "node dist/lib/StandaloneClient.js",
         "watch": "concurrently -k -p \"[{name}]\" -n \"TypeScript,Node\" -c \"cyan.bold,green.bold\" \"npm run watch-ts\" \"npm run watch-node\"",
         "watch-node": "nodemon dist/lib/StandaloneClient.js",
-        "build-ts": "tsc",
+        "compile-ts": "tsc",
+        "compile-ts-prod": "tsc -d --outDir $TSC_OUTDIR --sourceMap false",
         "watch-ts": "tsc -w",
         "tslint": "tslint -c tslint.json -p tsconfig.json",
         "debug": "npm run build && npm run watch-debug",
@@ -17,8 +20,6 @@
         "watch-debug": "concurrently -k -p \"[{name}]\" -n \"TypeScript,Node\" -c \"cyan.bold,green.bold\" \"npm run watch-ts\" \"npm run serve-debug\"",
         "package": "./npm-package.sh"
     },
-    "author": "",
-    "license": "",
     "dependencies": {
         "chokidar": "^3.0.2",
         "request": "^2.88.0",
