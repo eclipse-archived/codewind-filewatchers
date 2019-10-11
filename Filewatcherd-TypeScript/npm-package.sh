@@ -1,22 +1,21 @@
 #!/usr/bin/env bash
 
-# Package for npm
+# Package into tarball for consumption by npm dependees
 
-outDir="npm"
-libDir="${outDir}/lib"
+export TSC_OUTDIR="prod"
 
 set -ex
 
-npm run tslint
-rm -rf $libDir
 npm ci
-tsc -d --outDir $outDir --sourceMap false
+npm run tslint
+npm run compile-ts-prod
+npm prune --production
 
-cp -v package.json package-lock.json $outDir
+cp -v package.json package-lock.json $TSC_OUTDIR
 
 version=$(node -e "console.log(require('./package.json').version);")
 # version="1.0.0"
 
 tarball=filewatcherd-node_${version}.tar.gz
-tar -zcf $tarball $outDir
+tar -zcf $tarball $TSC_OUTDIR
 # echo $tarball

@@ -16,6 +16,7 @@ Thumbs.db
 dist/**/*
 
 # Ignore packaged-for-npm dir
-npm/
+prod/
+test/
 # and the build result
 filewatcherd*.tar.gz
