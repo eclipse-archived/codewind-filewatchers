@@ -65,23 +65,24 @@ spec:
 
                  sh '''
                     export SSH_HOST="genie.codewind@projects-storage.eclipse.org"
-                    export TARGET_DIR_PARENT="/home/data/httpd/download.eclipse.org/codewind/codewind-filewatchers/"
-                    export TARGET_DIR="${TARGET_DIR_PARENT}/codewind-filewatcher-ts/${GIT_BRANCH}/${BUILD_ID}"
+                    export TARGET_DIR_PARENT="/home/data/httpd/download.eclipse.org/codewind/codewind-filewatcher-ts/${GIT_BRANCH}/"
+                    export TARGET_DIR="${TARGET_DIR_PARENT}/${BUILD_ID}"
+                    export LATEST_DIR="${TARGET_DIR_PARENT}/latest"
                     export ARTIFACT_NAME="$(basename "filewatcherd*.tar.gz")"
-                    export LATEST_ARTIFACT_NAME="filewatcherd-node-latest.tar.gz"
-                    export LATEST_DIR="${TARGET_DIR}/latest"
+                    export LATEST_ARTIFACT_NAME="filewatcherd-node_latest.tar.gz"
                     export BUILD_INFO="build_info.properties"
 
                     echo "# Build date: $(date +%F-%T)" >> $BUILD_INFO
                     echo "build_info.url=$BUILD_URL" >> $BUILD_INFO
-                    SHA1=$(sha1sum ${OUTPUT_NAME}.vsix | cut -d ' ' -f 1)
+                    SHA1=$(sha1sum ${ARTIFACT_NAME} | cut -d ' ' -f 1)
                     echo "build_info.SHA-1=${SHA1}" >> $BUILD_INFO
 
                     set -x
-                  	ssh mkdir -p $SSH_HOST $TARGET_DIR
+                  	ssh $SSH_HOST mkdir -p $TARGET_DIR
                   	scp $ARTIFACT_NAME ${SSH_HOST}:${TARGET_DIR}
 
                     cp -v $ARTIFACT_NAME $LATEST_ARTIFACT_NAME
+                    ssh $SSH_HOST mkdir -p $LATEST_DIR
                   	scp $LATEST_ARTIFACT_NAME ${SSH_HOST}:${LATEST_DIR}
                     scp $BUILD_INFO ${SSH_HOST}:${LATEST_DIR}
 
