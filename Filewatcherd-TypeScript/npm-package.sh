@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
 
-# Package for npm
+# Package into tarball for consumption by npm dependees
 
 outDir="npm"
-libDir="${outDir}/lib"
 
 set -ex
 
-npm run tslint
-rm -rf $libDir
 npm ci
-tsc -d --outDir $outDir --sourceMap false
+npm run tslint
+npx run tsc -d --outDir $outDir --sourceMap false
+npm prune --production
 
 cp -v package.json package-lock.json $outDir
 
