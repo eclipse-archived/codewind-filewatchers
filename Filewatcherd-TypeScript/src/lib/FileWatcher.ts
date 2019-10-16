@@ -254,7 +254,7 @@ export class FileWatcher {
     public async sendWatchResponseAsync(successParam: boolean, ptw: ProjectToWatch): Promise<void> {
         if (this._disposed) { return; }
 
-		if(successParam) {
+        if (successParam) {
             this.informCwctlOfFileChangesAsync(ptw.projectId); // Don't await here
         }
 

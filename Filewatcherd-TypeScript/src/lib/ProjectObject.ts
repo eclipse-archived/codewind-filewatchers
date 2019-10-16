@@ -44,7 +44,7 @@ export class ProjectObject {
             this._projectToWatch = projectToWatch;
             this._batchUtil = new FileChangeEventBatchUtil(projectId, parent);
             this._watchService = watchService;
-            
+
             //  Here we convert the path to an absolute, canonical OS path for use by cwctl
             this._cliState = new CLIState(projectId, parent.installerPath,
                 convertAbsoluteUnixStyleNormalizedPathToLocalFile(projectToWatch.pathToMonitor));
