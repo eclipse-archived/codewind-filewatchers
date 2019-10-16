@@ -32,9 +32,6 @@ func main() {
 
 		if len(os.Args) == 3 {
 			installerPath = os.Args[2]
-		} else {
-			utils.LogSevere("Invalid numer of args")
-			return
 		}
 	}
 
