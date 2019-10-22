@@ -54,12 +54,15 @@ export class FileWatcher {
 
     private readonly _clientUuid: string;
 
+    private readonly _installerPath: string; // May be null
+
     private _disposed: boolean = false;
 
     constructor(urlParam: string, internalWatchService: IWatchService, externalWatchService: IWatchService,
-                clientUuid: string) {
+                installerPath: string, clientUuid: string) {
 
         this._clientUuid = clientUuid;
+        this._installerPath = installerPath;
 
         this._internalWatchService = internalWatchService;
         this._internalWatchService.setParent(this);
@@ -251,6 +254,10 @@ export class FileWatcher {
     public async sendWatchResponseAsync(successParam: boolean, ptw: ProjectToWatch): Promise<void> {
         if (this._disposed) { return; }
 
+        if (successParam) {
+            this.informCwctlOfFileChangesAsync(ptw.projectId); // Don't await here
+        }
+
         const backoffUtil = ExponentialBackoffUtil.getDefaultBackoffUtil(4000);
 
         let sendSuccess = false;
@@ -298,6 +305,25 @@ export class FileWatcher {
             }
         }
 
+    }
+
+    /** Called by sendWatchResponseAsync and FileChangeEventBatchUtil  */
+    public async informCwctlOfFileChangesAsync(projectId: string) {
+        if (this._disposed) { return; }
+
+        if (!this._installerPath || this._installerPath.trim().length === 0) {
+            log.debug("Skipping invocation of CLI command due to no installer path.");
+            return;
+        }
+
+        const po = this._projectsMap.get(projectId);
+
+        if (!po) {
+            log.severe("Asked to invoke CLI on a project that wasn't in the projects map: " + projectId);
+            return;
+        }
+
+        po.informCwctlOfFileChangesAsync();
     }
 
     public dispose() {
@@ -448,6 +474,11 @@ export class FileWatcher {
 
         }
 
+    }
+
+    /** May return null if the installer path is not defined. */
+    public get installerPath(): string {
+        return this._installerPath;
     }
 
 }

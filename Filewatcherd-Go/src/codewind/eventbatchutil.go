@@ -52,16 +52,18 @@ import (
  */
 type FileChangeEventBatchUtil struct {
 	filesChangesChan      chan []ChangedFileEntry
-	debugState_synch_lock string // Lock 'lock' before reading/writing this
+	debugState_synch_lock string    // Lock 'lock' before reading/writing this
+	cliState              *CLIState // nullable
 	lock                  *sync.Mutex
 }
 
-func NewFileChangeEventBatchUtil(projectID string, postOutputQueue *HttpPostOutputQueue) *FileChangeEventBatchUtil {
+func NewFileChangeEventBatchUtil(projectID string, postOutputQueue *HttpPostOutputQueue, cliStateParam *CLIState) *FileChangeEventBatchUtil {
 
 	result := &FileChangeEventBatchUtil{
 		filesChangesChan:      make(chan []ChangedFileEntry),
 		debugState_synch_lock: "",
 		lock:                  &sync.Mutex{},
+		cliState:              cliStateParam,
 	}
 
 	go result.fileChangeListener(projectID, postOutputQueue)
@@ -108,7 +110,7 @@ func (e *FileChangeEventBatchUtil) fileChangeListener(projectID string, postOutp
 			if timer1 != nil && timer1 == timerReceived {
 
 				if len(eventsReceivedSinceLastBatch) > 0 {
-					processAndSendEvents(eventsReceivedSinceLastBatch, projectID, postOutputQueue)
+					processAndSendEvents(eventsReceivedSinceLastBatch, projectID, postOutputQueue, e.cliState)
 				}
 				eventsReceivedSinceLastBatch = []ChangedFileEntry{}
 				timer1 = nil
@@ -146,7 +148,7 @@ func (e *FileChangeEventBatchUtil) updateDebugState(debugTimeSinceLastFileChange
 }
 
 /** Process the event list, split it into chunks, then pass it to the HTTP POST output queue */
-func processAndSendEvents(eventsToSend []ChangedFileEntry, projectID string, postOutputQueue *HttpPostOutputQueue) {
+func processAndSendEvents(eventsToSend []ChangedFileEntry, projectID string, postOutputQueue *HttpPostOutputQueue, cliState *CLIState) {
 	sort.SliceStable(eventsToSend, func(i, j int) bool {
 
 		// Sort ascending by timestamp
@@ -170,49 +172,60 @@ func processAndSendEvents(eventsToSend []ChangedFileEntry, projectID string, pos
 	utils.LogInfo(
 		"Batch change summary for " + projectID + "@ " + strconv.FormatInt(mostRecentTimestamp.timestamp, 10) + ": " + changeSummary)
 
-	var fileListsToSend [][]changedFileEntryJSON
+	if cliState != nil {
+		// Inform CLI of changes
+		cliState.OnFileChangeEvent()
 
-	for len(eventsToSend) > 0 {
+	} else {
+		// Use the old way of communicating file changes via POST packets.
 
-		var currList []changedFileEntryJSON
+		// TODO: Remove this entire else block once CWCTL sync is mature.
 
-		// Remove at most X paths from currList
-		for len(currList) < 625 && len(eventsToSend) > 0 {
-			cfe := eventsToSend[0]
-			eventsToSend = eventsToSend[1:]
-			currList = append(currList, *cfe.toJSON())
+		var fileListsToSend [][]changedFileEntryJSON
 
+		for len(eventsToSend) > 0 {
+
+			var currList []changedFileEntryJSON
+
+			// Remove at most X paths from currList
+			for len(currList) < 625 && len(eventsToSend) > 0 {
+				cfe := eventsToSend[0]
+				eventsToSend = eventsToSend[1:]
+				currList = append(currList, *cfe.toJSON())
+
+			}
+
+			if len(currList) > 0 {
+				fileListsToSend = append(fileListsToSend, currList)
+			}
 		}
 
-		if len(currList) > 0 {
-			fileListsToSend = append(fileListsToSend, currList)
-		}
-	}
+		var stringsToSend []string
 
-	var stringsToSend []string
+		for _, jsonArray := range fileListsToSend {
+			jaString, err := json.Marshal(jsonArray)
 
-	for _, jsonArray := range fileListsToSend {
-		jaString, err := json.Marshal(jsonArray)
+			if err != nil {
+				utils.LogSevere("Unable to marshal JSON")
+				continue
+			}
 
-		if err != nil {
-			utils.LogSevere("Unable to marshal JSON")
-			continue
-		}
+			compressedStr, err := compressAndConvertString(jaString)
+			if err != nil {
+				// We shouldn't ever get an error from compressing or conversion
+				utils.LogSevere("Unable to compress JSON")
+				continue
+			}
 
-		compressedStr, err := compressAndConvertString(jaString)
-		if err != nil {
-			// We shouldn't ever get an error from compressing or conversion
-			utils.LogSevere("Unable to compress JSON")
-			continue
+			stringsToSend = append(stringsToSend, *compressedStr)
 		}
 
-		stringsToSend = append(stringsToSend, *compressedStr)
-	}
+		// Pass the list of chunks to the HTTP Post output queue, for transmission to the server
+		utils.LogDebug("Strings to send " + strconv.Itoa(len(stringsToSend)))
+		if len(stringsToSend) > 0 {
+			postOutputQueue.AddToQueue(projectID, mostRecentTimestamp.timestamp, stringsToSend)
+		}
 
-	// Pass the list of chunks to the HTTP Post output queue, for transmission to the server
-	utils.LogDebug("Strings to send " + strconv.Itoa(len(stringsToSend)))
-	if len(stringsToSend) > 0 {
-		postOutputQueue.AddToQueue(projectID, mostRecentTimestamp.timestamp, stringsToSend)
 	}
 
 }

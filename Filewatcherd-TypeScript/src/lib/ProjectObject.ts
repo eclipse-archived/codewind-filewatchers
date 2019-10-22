@@ -13,8 +13,10 @@ import { FileChangeEventBatchUtil } from "./FileChangeEventBatchUtil";
 import { FileWatcher } from "./FileWatcher";
 import { ProjectToWatch } from "./ProjectToWatch";
 
+import { CLIState } from "./CLIState";
 import { IWatchService } from "./IWatchService";
 import * as log from "./Logger";
+import { convertAbsoluteUnixStyleNormalizedPathToLocalFile } from "./PathUtils";
 
 /**
  * Information maintained for each project that is being monitored by the watcher.
@@ -30,6 +32,8 @@ export class ProjectObject {
 
     private readonly _watchService: IWatchService;
 
+    private readonly _cliState: CLIState;
+
     public constructor(projectId: string, projectToWatch: ProjectToWatch, watchService: IWatchService,
                        parent: FileWatcher) {
 
@@ -40,6 +44,10 @@ export class ProjectObject {
             this._projectToWatch = projectToWatch;
             this._batchUtil = new FileChangeEventBatchUtil(projectId, parent);
             this._watchService = watchService;
+
+            //  Here we convert the path to an absolute, canonical OS path for use by cwctl
+            this._cliState = new CLIState(projectId, parent.installerPath,
+                convertAbsoluteUnixStyleNormalizedPathToLocalFile(projectToWatch.pathToMonitor));
     }
 
     public updateProjectToWatch(newProjectToWatch: ProjectToWatch) {
@@ -52,6 +60,10 @@ export class ProjectObject {
         }
 
         this._projectToWatch = newProjectToWatch;
+    }
+
+    public informCwctlOfFileChangesAsync() {
+        this._cliState.onFileChangeEvent();
     }
 
     public get projectToWatch(): ProjectToWatch {

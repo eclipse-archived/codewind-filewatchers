@@ -56,10 +56,16 @@ export class FileChangeEventBatchUtil {
 
     private readonly _projectId: string;
 
+    private readonly DISABLE_CWCTL_CLI_SYNC: boolean; // Enable this for debugging purposes.
+
     public constructor(projectId: string, parent: FileWatcher) {
         this._parent = parent;
         this._files = new Array<ChangedFileEntry>();
         this._projectId = projectId;
+
+        const debugEnvVar = process.env.DISABLE_CWCTL_CLI_SYNC;
+
+        this.DISABLE_CWCTL_CLI_SYNC = debugEnvVar && debugEnvVar === "true";
     }
 
     /**
@@ -140,33 +146,46 @@ export class FileChangeEventBatchUtil {
         log.info("Batch change summary for " + this._projectId + " @ "
             + mostRecentTimestamp.timestamp + ": " + eventSummary);
 
-        // Split the entries into requests, ensure that each request is no larger
-        // then a given size.
-        const fileListsToSend = new Array<IChangedFileEntryJson[]>();
-        while (entries.length > 0) {
-            const currList: IChangedFileEntryJson[] = new Array<IChangedFileEntryJson>();
-            while (currList.length < FileChangeEventBatchUtil.MAX_REQUEST_SIZE_IN_PATHS && entries.length > 0) {
-                const nextPath = entries.splice(0, 1);
+        if (!this.DISABLE_CWCTL_CLI_SYNC) {
+            // Use CWCTL CLI sync command
+            this._parent.informCwctlOfFileChangesAsync(this._projectId);
 
-                currList.push(nextPath[0].toJson());
+        } else {
+
+            // Use the old way of communicating file values.
+
+            // TODO: Remove this entire else block once CWCTL sync is mature.
+
+            // Split the entries into requests, ensure that each request is no larger
+            // then a given size.
+            const fileListsToSend = new Array<IChangedFileEntryJson[]>();
+            while (entries.length > 0) {
+                const currList: IChangedFileEntryJson[] = new Array<IChangedFileEntryJson>();
+                while (currList.length < FileChangeEventBatchUtil.MAX_REQUEST_SIZE_IN_PATHS && entries.length > 0) {
+                    const nextPath = entries.splice(0, 1);
+
+                    currList.push(nextPath[0].toJson());
+                }
+
+                if (currList.length > 0) {
+                    fileListsToSend.push(currList);
+                }
             }
 
-            if (currList.length > 0) {
-                fileListsToSend.push(currList);
+            const base64Compressed = new Array<string>();
+            for (const array of fileListsToSend) {
+                const str = JSON.stringify(array);
+                // log.debug("JSON contents: " + str);
+                const strBuffer = zlib.deflateSync(str);
+                base64Compressed.push(strBuffer.toString("base64"));
             }
+
+            if (base64Compressed.length > 0) {
+                this._parent.sendBulkFileChanges(this._projectId, mostRecentTimestamp.timestamp, base64Compressed);
+            }
+
         }
 
-        const base64Compressed = new Array<string>();
-        for (const array of fileListsToSend) {
-            const str = JSON.stringify(array);
-            // log.debug("JSON contents: " + str);
-            const strBuffer = zlib.deflateSync(str);
-            base64Compressed.push(strBuffer.toString("base64"));
-        }
-
-        if (base64Compressed.length > 0) {
-            this._parent.sendBulkFileChanges(this._projectId, mostRecentTimestamp.timestamp, base64Compressed);
-        }
     }
 
     /* Output the first 256 characters of the change list, as a summary of the full list of
@@ -209,7 +228,7 @@ export class FileChangeEventBatchUtil {
     }
 
     /** For any given path: If there are multiple entries of the same type in a row, then remove all but the first. */
-    private removeDuplicateEventsOfType(entries: ChangedFileEntry[], type: EventType ) {
+    private removeDuplicateEventsOfType(entries: ChangedFileEntry[], type: EventType) {
 
         if (type === EventType.MODIFY) {
             log.severe("Unsupported event type: " + type.toString());

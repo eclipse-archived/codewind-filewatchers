@@ -30,6 +30,7 @@ import (
  */
 type ProjectList struct {
 	projectOperationChannel chan *projectListChannelMessage
+	pathToInstaller         string // nullable
 }
 
 type receiveNewWatchEntriesMessage struct {
@@ -37,10 +38,11 @@ type receiveNewWatchEntriesMessage struct {
 	project         *models.ProjectToWatch
 }
 
-func NewProjectList(postOutputQueue *HttpPostOutputQueue) *ProjectList {
+func NewProjectList(postOutputQueue *HttpPostOutputQueue, pathToInstallerParam string) *ProjectList {
 
 	result := &ProjectList{}
 	result.projectOperationChannel = make(chan *projectListChannelMessage)
+	result.pathToInstaller = pathToInstallerParam
 	go result.channelListener(postOutputQueue)
 
 	return result
@@ -54,6 +56,7 @@ const (
 	updateProjectListFromGetRequestMsg
 	receiveNewWatchEventEntriesMsg
 	requestDebugMsg
+	cliFileChangeUpdate
 )
 
 type projectListChannelMessage struct {
@@ -63,6 +66,7 @@ type projectListChannelMessage struct {
 	updateProjectListFromGetRequestMessage *models.WatchlistEntries
 	receiveNewWatchEventEntriesMessage     *receiveNewWatchEntriesMessage
 	requestDebugMessage                    chan string
+	cliFileChangeUpdateMessage             string // project id
 }
 
 func (projectList *ProjectList) SetWatchService(watchService *WatchService) {
@@ -111,6 +115,14 @@ func (projectList *ProjectList) ReceiveNewWatchEventEntries(entry *models.WatchE
 	}
 }
 
+func (projectList *ProjectList) CLIFileChangeUpdate(projectId string) {
+
+	projectList.projectOperationChannel <- &projectListChannelMessage{
+		msgType:                    cliFileChangeUpdate,
+		cliFileChangeUpdateMessage: projectId,
+	}
+}
+
 func (projectList *ProjectList) channelListener(postOutputQueue *HttpPostOutputQueue) {
 
 	/** projectId -> most recent watch list for a project */
@@ -139,10 +151,32 @@ func (projectList *ProjectList) channelListener(postOutputQueue *HttpPostOutputQ
 			} else if projectOperationMessage.msgType == requestDebugMsg {
 				responseChan := projectOperationMessage.requestDebugMessage
 				responseChan <- projectList.handleRequestDebugMsg(projectsMap)
+			} else if projectOperationMessage.msgType == cliFileChangeUpdate {
+				projectList.handleCliFileChangeUpdate(projectOperationMessage.cliFileChangeUpdateMessage, projectsMap)
 			}
 		}
 
 	}
+}
+
+/** Generate an overview of the state of the project list, including the projects being watched. */
+func (projectList *ProjectList) handleCliFileChangeUpdate(projectID string, projectsMap map[string]*projectObject) {
+
+	value, exists := projectsMap[projectID]
+
+	if strings.TrimSpace(projectList.pathToInstaller) == "" {
+		utils.LogDebug("Skipping invocation of CLI command due to no installer path.")
+		return
+
+	}
+
+	if !exists || value == nil {
+		utils.LogSevere("Asked to invoke CLI on a project that wasn't in the projects map: " + projectID)
+		return
+	}
+
+	value.cliState.OnFileChangeEvent()
+
 }
 
 /** Generate an overview of the state of the project list, including the projects being watched. */
@@ -231,7 +265,7 @@ func (projectList *ProjectList) handleUpdateProjectListFromGetRequest(entries *m
 
 	// Next, create new projects, or updating existing ones
 	for _, project := range *entries {
-		processProject(project, projectsMap, postOutputQueue, watchService)
+		projectList.processProject(project, projectsMap, postOutputQueue, watchService)
 	}
 
 }
@@ -271,7 +305,7 @@ func (projectList *ProjectList) handleUpdateProjectListFromWebSocket(webSocketUp
 			}
 
 		} else {
-			processProject(projectFromWS, projectsMap, postOutputQueue, watchService)
+			projectList.processProject(projectFromWS, projectsMap, postOutputQueue, watchService)
 		}
 	}
 
@@ -280,7 +314,7 @@ func (projectList *ProjectList) handleUpdateProjectListFromWebSocket(webSocketUp
 /**
  * Synchronize the project in our projectsMap (if it exists), with the new 'projectToProcess' from the server.
  * If it doesn't exist, create it.*/
-func processProject(projectToProcess models.ProjectToWatch, projectsMap map[string]*projectObject, postOutputQueue *HttpPostOutputQueue, watchService *WatchService) {
+func (projectList *ProjectList) processProject(projectToProcess models.ProjectToWatch, projectsMap map[string]*projectObject, postOutputQueue *HttpPostOutputQueue, watchService *WatchService) {
 
 	currProjWatchState, exists := projectsMap[projectToProcess.ProjectID]
 	if exists {
@@ -325,7 +359,11 @@ func processProject(projectToProcess models.ProjectToWatch, projectsMap map[stri
 	} else {
 		// This is the first time we are hearing about this project
 
-		currProjWatchState = newProjectObject(projectToProcess, postOutputQueue)
+		currProjWatchState, err := projectList.newProjectObject(projectToProcess, postOutputQueue)
+		if err != nil {
+			utils.LogSevereErr("Error on creation of new project object", err)
+			return
+		}
 		projectsMap[projectToProcess.ProjectID] = currProjWatchState
 
 		// For Windows, the server will give us path in the form of '/c/Users/Administrator',
@@ -411,11 +449,37 @@ func handleReceiveNewWatchEventEntries(projectMatch *models.ProjectToWatch, entr
 type projectObject struct {
 	project        *models.ProjectToWatch
 	eventBatchUtil *FileChangeEventBatchUtil
+	cliState       *CLIState // Nullable
 }
 
-func newProjectObject(project models.ProjectToWatch, postOutputQueue *HttpPostOutputQueue) *projectObject {
+func (projectList *ProjectList) newProjectObject(project models.ProjectToWatch, postOutputQueue *HttpPostOutputQueue) (*projectObject, error) {
+
+	var cliState *CLIState
+	var err error
+
+	if strings.TrimSpace(projectList.pathToInstaller) == "" {
+		cliState = nil
+
+	} else {
+
+		// Here we convert the path to an absolute, canonical OS path for use by cwctl
+		var path string
+		path, err = utils.ConvertAbsoluteUnixStyleNormalizedPathToLocalFile(project.PathToMonitor)
+
+		if err != nil {
+			return nil, err
+		}
+
+		cliState, err = NewCLIState(project.ProjectID, projectList.pathToInstaller, path)
+		if err != nil {
+			return nil, err
+		}
+
+	}
+
 	return &projectObject{
 		&project,
-		NewFileChangeEventBatchUtil(project.ProjectID, postOutputQueue),
-	}
+		NewFileChangeEventBatchUtil(project.ProjectID, postOutputQueue, cliState),
+		cliState, // May be null
+	}, nil
 }

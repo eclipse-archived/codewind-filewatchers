@@ -28,13 +28,14 @@ import { WatchService } from "./WatchService";
  * @param logDir - Directory to write logs to, by default ~/.codewind.
  */
 export default async function createWatcher(codewindURL: string, logDir?: string,
-                                            externalWatchService?: IWatchService): Promise<FileWatcher> {
+                                            externalWatchService?: IWatchService, pathToInstaller?: string)
+                                            : Promise<FileWatcher> {
 
     // Default log level
     let logLevel = log.LogLevel.INFO;
 
     // Allow the user to set DEBUG log level via a case-nonspecific environment variable
-    outer_for: for (const key in  process.env) {
+    outer_for: for (const key in process.env) {
         if (process.env.hasOwnProperty(key) && key.toLowerCase() === "filewatcher_log_level") {
             if (process.env[key] === "debug") {
                 logLevel = log.LogLevel.DEBUG;
@@ -66,7 +67,7 @@ export default async function createWatcher(codewindURL: string, logDir?: string
     const clientUuid = crypto.randomBytes(16).toString("hex");
 
     const fw = new FileWatcher(codewindURL, watchService, (externalWatchService) ? externalWatchService : null,
-        clientUuid);
+        pathToInstaller, clientUuid);
 
     return fw;
 }

@@ -161,7 +161,7 @@ func watchServiceEventLoop(publicObject *WatchService, projectList *ProjectList,
 				if msg.success {
 					addRootPathInternal_step2(msg.path, msg.project, watchedProjects, projectList, baseURL, publicObject)
 				} else {
-					informWatchSuccessStatus(msg.project, false, baseURL, publicObject)
+					informWatchSuccessStatus(msg.project, false, baseURL, publicObject, projectList)
 				}
 
 			}
@@ -252,7 +252,7 @@ func addRootPathInternal_step2(path string, project *models.ProjectToWatch, watc
 		success = false
 	}
 
-	informWatchSuccessStatus(project, success, baseURL, service)
+	informWatchSuccessStatus(project, success, baseURL, service, projectList)
 
 }
 
@@ -691,9 +691,15 @@ func newWatchEventEntry(eventType string, path string, isDir bool) (*models.Watc
 }
 
 /** Start a new goroutine to communicate to the server the success/failure of the initial watch. */
-func informWatchSuccessStatus(ptw *models.ProjectToWatch, success bool, baseURL string, service *WatchService) {
+func informWatchSuccessStatus(ptw *models.ProjectToWatch, success bool, baseURL string, service *WatchService, projectList *ProjectList) {
 
 	go func() {
+
+		if success {
+			// Inform the CLI on watch success, if needed
+			projectList.CLIFileChangeUpdate(ptw.ProjectID)
+		}
+
 		successVal := "true"
 
 		backoffUtil := utils.NewExponentialBackoff()
