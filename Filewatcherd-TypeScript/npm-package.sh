@@ -6,6 +6,8 @@ export TSC_OUTDIR="prod"
 
 set -ex
 
+rm -rf $TSC_OUTDIR/
+
 npm ci
 npm run tslint
 npm run compile-ts-prod
@@ -17,5 +19,5 @@ version=$(node -e "console.log(require('./package.json').version);")
 # version="1.0.0"
 
 tarball=filewatcherd-node_${version}.tar.gz
-tar -zcf $tarball $TSC_OUTDIR
+tar -zvcf $tarball $TSC_OUTDIR/
 # echo $tarball
