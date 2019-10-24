@@ -22,16 +22,16 @@ import (
 	"time"
 )
 
-/*
- * The purpose of this is to call the cwctl project sync command, in order to allow the
- * Codewind CLI to detect and communicate file changes to the server.
- *
- * This class will ensure that only one instance of the cwctl project sync command is running
- * at a time, per project.
- *
- * For automated testing, if the `MOCK_CWCTL_INSTALLER_PATH` environment variable is specified, a mock cwctl command
- * written in Java (as a runnable JAR) can be used to test this class.
- */
+// CLIState ...
+//
+// The purpose of this is to call the cwctl project sync command, in order to allow the
+// Codewind CLI to detect and communicate file changes to the server.
+//
+// This class will ensure that only one instance of the cwctl project sync command is running
+// at a time, per project.
+//
+// For automated testing, if the `MOCK_CWCTL_INSTALLER_PATH` environment variable is specified, a mock cwctl command
+// written in Java (as a runnable JAR) can be used to test this class.
 type CLIState struct {
 	projectID string
 
@@ -45,6 +45,7 @@ type CLIState struct {
 	channel chan CLIStateChannelEntry
 }
 
+// NewCLIState contains the state of the CLI project sync commmand for a single project (id+path)
 func NewCLIState(projectIDParam string, installerPathParam string, projectPathParam string) (*CLIState, error) {
 
 	if installerPathParam == "" {
@@ -66,6 +67,9 @@ func NewCLIState(projectIDParam string, installerPathParam string, projectPathPa
 
 }
 
+// OnFileChangeEvent is called by eventbatchutil and projectlist. 
+// This method is defacto non-blocking: it will pass the file notification to the go channel (which should be read immediately)
+// then immediately return.
 func (state *CLIState) OnFileChangeEvent() error {
 
 	if strings.TrimSpace(state.projectPath) == "" {
@@ -120,7 +124,7 @@ func (state *CLIState) readChannel() {
 
 }
 
-/* If non-null, then is a runProjectCommand response, otherwise, is a new file change. */
+// CLIStateChannelEntry runprojectReturn will be non-null if it is a runProjectCommand response, otherwise null if it is a new file change. */
 type CLIStateChannelEntry struct {
 	runProjectReturn *RunProjectReturn
 }
@@ -133,26 +137,26 @@ func (state *CLIState) runProjectCommand(timestamp int64) {
 
 	var args []string
 
-	adjustedTimestampInMsecs := (time.Now().UnixNano() / int64(time.Millisecond)) - timestamp
+	lastTimestamp := timestamp
 
 	if state.mockInstallerPath == "" {
 		firstArg = state.installerPath
 		// Example:
 		// cwctl project sync -p
 		// /Users/tobes/workspaces/git/eclipse/codewind/codewind-workspace/lib5 \
-		// -i b1a78500-eaa5-11e9-b0c1-97c28a7e77c7 -t 12345
+		// -i b1a78500-eaa5-11e9-b0c1-97c28a7e77c7 -t 1571944337
 
 		// Do not wrap paths in quotes; it's not needed and Go doesn't like that :P
 
 		args = append(args, "project", "sync", "-p", state.projectPath, "-i", state.projectID, "-t",
-			strconv.FormatInt(adjustedTimestampInMsecs, 10))
+			strconv.FormatInt(lastTimestamp, 10))
 
 	} else {
 		firstArg = "java"
 		// args = append(args, "java")
 
 		args = append(args, "-jar", state.mockInstallerPath, "-p", state.projectPath, "-i",
-			state.projectID, "-t", strconv.FormatInt(adjustedTimestampInMsecs, 10))
+			state.projectID, "-t", strconv.FormatInt(lastTimestamp, 10))
 
 		currInstallPath = state.mockInstallerPath
 	}
@@ -179,8 +183,16 @@ func (state *CLIState) runProjectCommand(timestamp int64) {
 
 	utils.LogInfo("Cwctl call completed, elapsed time of cwctl call: " + strconv.FormatInt((time.Now().UnixNano()/int64(time.Millisecond))-spawnTimeInMsecs, 10))
 
-	if err != nil && err.(*exec.ExitError).ExitCode() != 0 {
-		errorCode := err.(*exec.ExitError).ExitCode()
+	if err != nil {
+
+		errorCode := -1
+
+		one, castable := err.(*exec.ExitError)
+
+		if castable {
+			errorCode = one.ExitCode()
+		}
+
 		utils.LogError("Error running 'project sync' installer command: " + debugStr)
 		utils.LogError("Out: " + string(stdoutStderr))
 
@@ -208,7 +220,7 @@ func (state *CLIState) runProjectCommand(timestamp int64) {
 	}
 }
 
-/** Return value of runProjectCommand(). */
+// RunProjectReturn contains the return value of runProjectCommand()
 type RunProjectReturn struct {
 	errorCode int
 	output    string
