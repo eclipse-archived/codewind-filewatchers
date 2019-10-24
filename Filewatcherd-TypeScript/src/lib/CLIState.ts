@@ -10,10 +10,7 @@
 *******************************************************************************/
 
 import * as child_process from "child_process";
-import * as fs from "fs";
-import * as os from "os";
 import * as path from "path";
-import * as readline from "readline";
 import * as log from "./Logger";
 
 /* The purpose of this class is to call the cwctl project sync command, in order to allow the
@@ -32,8 +29,7 @@ export class CLIState {
 
     private readonly _projectId: string;
 
-    /* Absolute time, in unix epoch msecs, at which the last cwctl command was initiated. Note this is
-     * different from the actual value we provide to cwctl. */
+    /* Absolute time, in unix epoch msecs, at which the last cwctl command was initiated. */
     private _timestamp: number = 0;
 
     private readonly _installerPath: string;
@@ -122,17 +118,16 @@ export class CLIState {
 
         let args: string[];
 
-        // Convert the absolute timestamp to # of msecs since start of last run.
-        const adjustedTimestamp = (new Date()).getTime() - this._timestamp;
+        const lastTimestamp = this._timestamp;
 
         if (!this._mockInstallerPath || this._mockInstallerPath.trim().length === 0) {
             // Example:
             // cwctl project sync -p /Users/tobes/workspaces/git/eclipse/codewind/codewind-workspace/lib5 \
             //      -i b1a78500-eaa5-11e9-b0c1-97c28a7e77c7 -t 12345
-            args = ["project", "sync", "-p", this._projectPath, "-i", this._projectId, "-t", "" + adjustedTimestamp];
+            args = ["project", "sync", "-p", this._projectPath, "-i", this._projectId, "-t", "" + lastTimestamp];
         } else {
             args = ["-jar", this._mockInstallerPath, "-p", this._projectPath, "-i", this._projectId, "-t",
-                "" + adjustedTimestamp];
+                "" + lastTimestamp];
             firstArg = "java";
         }
 
