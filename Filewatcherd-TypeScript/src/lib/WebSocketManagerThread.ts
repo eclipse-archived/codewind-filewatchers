@@ -228,6 +228,8 @@ export class WebSocketManagerThread {
             return;
         }
 
+        log.info("Received watch change message from WebSocket: " + s);
+
         const wc: IWatchChangeJson = JSON.parse(s);
 
         if (!wc || !wc.type || !wc.projects) {
