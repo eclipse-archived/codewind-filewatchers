@@ -63,7 +63,7 @@ export class ProjectObject {
     }
 
     public informCwctlOfFileChangesAsync() {
-        this._cliState.onFileChangeEvent();
+        this._cliState.onFileChangeEvent(this._projectToWatch.projectCreationTimeInAbsoluteMsecs);
     }
 
     public get projectToWatch(): ProjectToWatch {

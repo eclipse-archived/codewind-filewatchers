@@ -241,7 +241,7 @@ export class WebSocketManagerThread {
             let infoStr = "";
 
             for (const e of wc.projects) {
-                const ptw: ProjectToWatchFromWebSocket = new ProjectToWatchFromWebSocket(e);
+                const ptw: ProjectToWatchFromWebSocket = ProjectToWatchFromWebSocket.create(e);
                 projects.push(ptw);
                 infoStr += "[" + ptw.projectId + " in " + (ptw.pathToMonitor ? ptw.pathToMonitor : "N/A") + "], ";
             }
