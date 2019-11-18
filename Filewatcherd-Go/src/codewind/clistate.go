@@ -22,9 +22,7 @@ import (
 	"time"
 )
 
-// CLIState ...
-//
-// The purpose of this is to call the cwctl project sync command, in order to allow the
+// CLIState will call the cwctl project sync command, in order to allow the
 // Codewind CLI to detect and communicate file changes to the server.
 //
 // This class will ensure that only one instance of the cwctl project sync command is running
@@ -67,10 +65,10 @@ func NewCLIState(projectIDParam string, installerPathParam string, projectPathPa
 
 }
 
-// OnFileChangeEvent is called by eventbatchutil and projectlist. 
+// OnFileChangeEvent is called by eventbatchutil and projectlist.
 // This method is defacto non-blocking: it will pass the file notification to the go channel (which should be read immediately)
 // then immediately return.
-func (state *CLIState) OnFileChangeEvent() error {
+func (state *CLIState) OnFileChangeEvent(projectCreationTimeInAbsoluteMsecsParam int64) error {
 
 	if strings.TrimSpace(state.projectPath) == "" {
 		msg := "Project path passed to CLIState is empty, so ignoring file change event."
@@ -79,7 +77,7 @@ func (state *CLIState) OnFileChangeEvent() error {
 	}
 
 	// Inform channel that a new file change list was received (but don't actually send it)
-	state.channel <- CLIStateChannelEntry{nil}
+	state.channel <- CLIStateChannelEntry{projectCreationTimeInAbsoluteMsecsParam, nil}
 
 	return nil
 }
@@ -101,7 +99,7 @@ func (state *CLIState) readChannel() {
 			rpr := channelResult.runProjectReturn
 
 			if rpr.errorCode == 0 {
-				// Success, so update the tiemstamp to the process start time.
+				// Success, so update the timestamp to the process start time.
 				lastTimestamp = rpr.spawnTime
 				utils.LogInfo("Updating timestamp to latest: " + strconv.FormatInt(lastTimestamp, 10))
 
@@ -110,6 +108,12 @@ func (state *CLIState) readChannel() {
 			}
 
 		} else {
+
+			if channelResult.projectCreationTimeInAbsoluteMsecsParam != 0 && lastTimestamp == 0 {
+				utils.LogInfo("Timestamp updated from " + timestampToString(lastTimestamp) + " to " + timestampToString(channelResult.projectCreationTimeInAbsoluteMsecsParam) + " from project creation time.")
+				lastTimestamp = channelResult.projectCreationTimeInAbsoluteMsecsParam
+			}
+
 			// Another thread has informed us of new file changes
 			processWaiting = true
 		}
@@ -126,7 +130,8 @@ func (state *CLIState) readChannel() {
 
 // CLIStateChannelEntry runprojectReturn will be non-null if it is a runProjectCommand response, otherwise null if it is a new file change. */
 type CLIStateChannelEntry struct {
-	runProjectReturn *RunProjectReturn
+	projectCreationTimeInAbsoluteMsecsParam int64
+	runProjectReturn                        *RunProjectReturn
 }
 
 func (state *CLIState) runProjectCommand(timestamp int64) {
@@ -202,7 +207,7 @@ func (state *CLIState) runProjectCommand(timestamp int64) {
 			spawnTimeInMsecs,
 		}
 
-		state.channel <- CLIStateChannelEntry{&result}
+		state.channel <- CLIStateChannelEntry{0, &result}
 
 	} else {
 
@@ -215,7 +220,7 @@ func (state *CLIState) runProjectCommand(timestamp int64) {
 			spawnTimeInMsecs,
 		}
 
-		state.channel <- CLIStateChannelEntry{&result}
+		state.channel <- CLIStateChannelEntry{0, &result}
 
 	}
 }

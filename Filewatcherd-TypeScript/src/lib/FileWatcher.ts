@@ -420,6 +420,7 @@ export class FileWatcher {
         const fileToMonitor = PathUtils.convertAbsoluteUnixStyleNormalizedPathToLocalFile(ptw.pathToMonitor);
 
         if (po === undefined) {
+            // If this is a new project to watch...
 
             let watchService = this._internalWatchService;
 
@@ -445,7 +446,99 @@ export class FileWatcher {
 
         } else {
 
+            // Otherwise update existing project to watch, if needed
             const oldProjectToWatch = po.projectToWatch;
+
+            // This method may receive ProjectToWatch objects with either null or non-null
+            // values for the `projectCreationTimeInAbsoluteMsecs` field. However, under no
+            // circumstances should we ever replace a non-null value for this field with a
+            // null value.
+            //
+            // For this reason, we carefully compare these values in this if block and
+            // update accordingly.
+            {
+                let pctUpdated = false;
+
+                const pctOldProjectToWatch = oldProjectToWatch.projectCreationTimeInAbsoluteMsecs;
+                const pctNewProjectToWatch = ptw.projectCreationTimeInAbsoluteMsecs;
+
+                let newPct = null;
+
+                // If both the old and new values are not null, but the value has changed, then
+                // use the new value.
+                if (pctNewProjectToWatch && pctOldProjectToWatch
+                    && pctNewProjectToWatch !== pctOldProjectToWatch) {
+
+                    newPct = pctNewProjectToWatch;
+
+                    const newTimeInDate = pctNewProjectToWatch ? new Date(pctNewProjectToWatch).toString()
+                        : "";
+
+                    log.info("The project creation time has changed, when both values were non-null. Old: "
+                        + pctOldProjectToWatch + " New: " + pctNewProjectToWatch + "(" + newTimeInDate
+                        + "), for project " + ptw.projectId);
+
+                    pctUpdated = true;
+
+                }
+
+                // If old is not-null, and new is null, then DON'T overwrite the old one with
+                // the new one.
+                if (pctOldProjectToWatch && !pctNewProjectToWatch) {
+
+                    newPct = pctOldProjectToWatch;
+
+                    log.info(
+                        "Internal project creation state was preserved, despite receiving a project "
+                        + "update w/o this value. Current: " + pctOldProjectToWatch + " Received: "
+                        + pctNewProjectToWatch + " for project " + ptw.projectId);
+
+                    // Update the ptw, in case it is used by the following if block, but DONT call
+                    // po.updatePTW(...) with it.
+                    if (ptw instanceof ProjectToWatchFromWebSocket) {
+                        const castPtw = ptw as ProjectToWatchFromWebSocket;
+                        ptw = ProjectToWatchFromWebSocket.cloneWebSocketWithNewProjectCreationTime(castPtw, newPct);
+
+                    } else if (ptw instanceof ProjectToWatch) {
+                        const castPtw = ptw as ProjectToWatch;
+                        ptw = ProjectToWatch.cloneWithNewProjectCreationTime(castPtw, newPct);
+                    }
+
+                    // this is false so that updatePTW(...) is not called.
+                    pctUpdated = false;
+
+                }
+
+                // If the old is null, and the new is not null, then overwrite the old with the
+                // new.
+                if (!pctOldProjectToWatch && pctNewProjectToWatch) {
+                    newPct = pctNewProjectToWatch;
+                    const newTimeInDate = newPct != null ? new Date(newPct).toString() : "";
+                    log.info("The project creation time has changed. Old: " + pctOldProjectToWatch + " New: "
+                        + pctNewProjectToWatch + "(" + newTimeInDate + "), for project " + ptw.projectId);
+
+                    pctUpdated = true;
+                }
+
+                if (pctUpdated) {
+                    // Update the object itself, in case the if-branch below this one is executed.
+
+                    if (ptw instanceof ProjectToWatchFromWebSocket) {
+                        const castPtw = ptw as ProjectToWatchFromWebSocket;
+                        ptw = ProjectToWatchFromWebSocket.cloneWebSocketWithNewProjectCreationTime(castPtw, newPct);
+
+                    } else if (ptw instanceof ProjectToWatch) {
+                        const castPtw = ptw as ProjectToWatch;
+                        ptw = ProjectToWatch.cloneWithNewProjectCreationTime(castPtw, newPct);
+                    }
+
+                    // This logic may cause the PO to be updated twice (once here, and once below,
+                    // but this is fine)
+                    po.updateProjectToWatch(ptw);
+
+                }
+
+            }
 
             // If the watch has changed, then remove the path and update the PTw
             if (oldProjectToWatch.projectWatchStateId !== ptw.projectWatchStateId) {

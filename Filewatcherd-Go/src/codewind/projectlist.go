@@ -14,20 +14,19 @@ package main
 import (
 	"codewind/models"
 	"codewind/utils"
+	"strconv"
 	"strings"
 	"time"
 )
 
-/**
- * ProjectList is the API entrypoint for other code in this application to perform operations against monitored projects:
- * - Update project list from a GET response
- * - Update project list from a WebSocket response
- * - Process a file update and pass it to batch utility
- *
- * Behind the scenes, the ProjectList API calls are translated into channel messages and placed on the projectOperationChannel.
- * This allows us to provide thread safety to the internal project list data, as that data will only ever be accessed
- * by a single goroutine.
- */
+// ProjectList is the API entrypoint for other code in this application to perform operations against monitored projects:
+// - Update project list from a GET response
+// - Update project list from a WebSocket response
+// - Process a file update and pass it to batch utility
+//
+// Behind the scenes, the ProjectList API calls are translated into channel messages and placed on the projectOperationChannel.
+// This allows us to provide thread safety to the internal project list data, as that data will only ever be accessed
+// by a single goroutine.
 type ProjectList struct {
 	projectOperationChannel chan *projectListChannelMessage
 	pathToInstaller         string // nullable
@@ -38,6 +37,7 @@ type receiveNewWatchEntriesMessage struct {
 	project         *models.ProjectToWatch
 }
 
+// NewProjectList ...
 func NewProjectList(postOutputQueue *HttpPostOutputQueue, pathToInstallerParam string) *ProjectList {
 
 	result := &ProjectList{}
@@ -159,7 +159,7 @@ func (projectList *ProjectList) channelListener(postOutputQueue *HttpPostOutputQ
 	}
 }
 
-/** Generate an overview of the state of the project list, including the projects being watched. */
+/** Inform the CLI of a file change on the specified project. */
 func (projectList *ProjectList) handleCliFileChangeUpdate(projectID string, projectsMap map[string]*projectObject) {
 
 	value, exists := projectsMap[projectID]
@@ -175,7 +175,9 @@ func (projectList *ProjectList) handleCliFileChangeUpdate(projectID string, proj
 		return
 	}
 
-	value.cliState.OnFileChangeEvent()
+	if value.cliState != nil {
+		value.cliState.OnFileChangeEvent(value.project.ProjectCreationTime)
+	}
 
 }
 
@@ -311,18 +313,92 @@ func (projectList *ProjectList) handleUpdateProjectListFromWebSocket(webSocketUp
 
 }
 
-/**
- * Synchronize the project in our projectsMap (if it exists), with the new 'projectToProcess' from the server.
- * If it doesn't exist, create it.*/
+// Synchronize the project in our projectsMap (if it exists), with the new 'projectToProcess' from the server.
+// If it doesn't exist, create it.
 func (projectList *ProjectList) processProject(projectToProcess models.ProjectToWatch, projectsMap map[string]*projectObject, postOutputQueue *HttpPostOutputQueue, watchService *WatchService) {
 
 	currProjWatchState, exists := projectsMap[projectToProcess.ProjectID]
 	if exists {
 		// If we have previously monitored this project...
 
-		if currProjWatchState.project.PathToMonitor == projectToProcess.PathToMonitor {
+		oldProjectToWatch := currProjWatchState.project
 
-			oldProjectToWatch := currProjWatchState.project
+		// This method may receive ProjectToWatch objects with either null or non-null
+		// values for the `projectCreationTimeInAbsoluteMsecs` field. However, under no
+		// circumstances should we ever replace a non-null value for this field with a
+		// null field.
+		//
+		// For this reason, we carefully compare these values in this if block and
+		// update accordingly.
+		{
+			pctUpdated := false
+
+			pctOldProjectToWatch := oldProjectToWatch.ProjectCreationTime
+			pctNewProjectToWatch := projectToProcess.ProjectCreationTime
+
+			newPct := int64(0)
+
+			// If both the old and new values are not null, but the value has changed, then
+			// use the new value.
+			if pctNewProjectToWatch != 0 && pctOldProjectToWatch != 0 && pctNewProjectToWatch != pctOldProjectToWatch {
+
+				newPct = pctNewProjectToWatch
+
+				utils.LogInfo("The project creation time has changed, when both values were non-null. Old: " + timestampToString(pctOldProjectToWatch) + " New: " + timestampToString(pctNewProjectToWatch) + " for project " + projectToProcess.ProjectID)
+
+				pctUpdated = true
+			}
+
+			// If old is not-null, and new is null, then DON'T overwrite the old one with
+			// the new one.
+			if pctOldProjectToWatch != 0 && pctNewProjectToWatch == 0 {
+
+				newPct = pctOldProjectToWatch
+
+				utils.LogInfo(
+					"Internal project creation state was preserved, despite receiving a project update w/o this value. Current: " + timestampToString(pctOldProjectToWatch) + " Received: " + timestampToString(pctNewProjectToWatch) + " for project " + projectToProcess.ProjectID)
+
+				newPtw := *(projectToProcess.Clone())
+				newPtw.ProjectCreationTime = newPct
+
+				if newPtw.ProjectCreationTime != pctOldProjectToWatch {
+					utils.LogSevere("Updated PTW field did not have correct projectCreationTime, for project " + projectToProcess.ProjectID)
+				}
+
+				// Update the ptw, in case it is used by the following if block, but DONT call
+				// po.updatePTW(...) with it.
+				projectToProcess = newPtw
+				pctUpdated = false // this is false so that updatePTW(...) is not called.
+			}
+
+			// If the old is null, and the new is not null, then overwrite the old with the
+			// new.
+			if pctOldProjectToWatch == 0 && pctNewProjectToWatch != 0 {
+
+				newPct = pctNewProjectToWatch
+
+				utils.LogInfo("The project creation time has changed. Old: " + timestampToString(pctOldProjectToWatch) + " New: " + timestampToString(pctNewProjectToWatch) + ", for project " + projectToProcess.ProjectID)
+
+				pctUpdated = true
+
+			}
+
+			if pctUpdated {
+
+				newPtw := *(projectToProcess.Clone())
+				newPtw.ProjectCreationTime = newPct
+
+				// Update the object itself, in case the if-branch below this one is executed.
+				projectToProcess = newPtw
+
+				// This logic may cause the PO to be updated twice (once here, and once below,
+				// but this is fine)
+				currProjWatchState.project = &projectToProcess
+			}
+
+		}
+
+		if currProjWatchState.project.PathToMonitor == projectToProcess.PathToMonitor {
 
 			fileToMonitor, err := utils.ConvertAbsoluteUnixStyleNormalizedPathToLocalFile(projectToProcess.PathToMonitor)
 			if err != nil {
@@ -381,6 +457,10 @@ func (projectList *ProjectList) processProject(projectToProcess models.ProjectTo
 		}
 	}
 
+}
+
+func timestampToString(ts int64) string {
+	return strconv.FormatInt(ts, 10)
 }
 
 /** This function is called with a new file change entry, which is filtered (if necessary) then patched to the project's batch utility object.  */
@@ -479,7 +559,7 @@ func (projectList *ProjectList) newProjectObject(project models.ProjectToWatch, 
 
 	return &projectObject{
 		&project,
-		NewFileChangeEventBatchUtil(project.ProjectID, postOutputQueue, cliState),
+		NewFileChangeEventBatchUtil(project.ProjectID, postOutputQueue, projectList),
 		cliState, // May be null
 	}, nil
 }

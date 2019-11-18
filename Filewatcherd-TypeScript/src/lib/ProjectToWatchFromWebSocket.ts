@@ -22,14 +22,37 @@ import { ProjectToWatch } from "./ProjectToWatch";
  */
 export class ProjectToWatchFromWebSocket extends ProjectToWatch {
 
-    private readonly _changeType: string;
-
-    constructor(json: models.IWatchedProjectJson) {
-        super(json, json.changeType.toLowerCase() === "delete");
-        this._changeType = json.changeType;
-    }
-
     public get changeType(): string {
         return this._changeType;
+    }
+
+    public static cloneWebSocketWithNewProjectCreationTime(old: ProjectToWatchFromWebSocket,
+                                                           projectCreationTimeInAbsoluteMsecsParam: number)
+        : ProjectToWatchFromWebSocket {
+
+        const result = new ProjectToWatchFromWebSocket();
+
+        ProjectToWatch.copyWithNewProjectCreationTime(result, old, projectCreationTimeInAbsoluteMsecsParam);
+
+        result._changeType = old._changeType;
+
+        return result;
+    }
+
+    public static create(json: models.IWatchedProjectJson): ProjectToWatchFromWebSocket {
+        const result = new ProjectToWatchFromWebSocket();
+        ProjectToWatch.innerCreateFromJson(result, json, json.changeType.toLowerCase() === "delete");
+        result._changeType = json.changeType;
+
+        return result;
+    }
+
+    private _changeType: string;
+
+    protected constructor() {
+        // json: models.IWatchedProjectJson
+        super();
+        // super(json, json.changeType.toLowerCase() === "delete");
+        // this._changeType = json.changeType;
     }
 }

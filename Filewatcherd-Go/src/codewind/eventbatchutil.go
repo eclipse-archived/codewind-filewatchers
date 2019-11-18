@@ -52,18 +52,18 @@ import (
  */
 type FileChangeEventBatchUtil struct {
 	filesChangesChan      chan []ChangedFileEntry
-	debugState_synch_lock string    // Lock 'lock' before reading/writing this
-	cliState              *CLIState // nullable
+	debugState_synch_lock string // Lock 'lock' before reading/writing this
+	projectList           *ProjectList
 	lock                  *sync.Mutex
 }
 
-func NewFileChangeEventBatchUtil(projectID string, postOutputQueue *HttpPostOutputQueue, cliStateParam *CLIState) *FileChangeEventBatchUtil {
+func NewFileChangeEventBatchUtil(projectID string, postOutputQueue *HttpPostOutputQueue, projectList *ProjectList) *FileChangeEventBatchUtil {
 
 	result := &FileChangeEventBatchUtil{
 		filesChangesChan:      make(chan []ChangedFileEntry),
 		debugState_synch_lock: "",
 		lock:                  &sync.Mutex{},
-		cliState:              cliStateParam,
+		projectList:           projectList,
 	}
 
 	go result.fileChangeListener(projectID, postOutputQueue)
@@ -110,7 +110,7 @@ func (e *FileChangeEventBatchUtil) fileChangeListener(projectID string, postOutp
 			if timer1 != nil && timer1 == timerReceived {
 
 				if len(eventsReceivedSinceLastBatch) > 0 {
-					processAndSendEvents(eventsReceivedSinceLastBatch, projectID, postOutputQueue, e.cliState)
+					processAndSendEvents(eventsReceivedSinceLastBatch, projectID, postOutputQueue, e.projectList)
 				}
 				eventsReceivedSinceLastBatch = []ChangedFileEntry{}
 				timer1 = nil
@@ -148,7 +148,7 @@ func (e *FileChangeEventBatchUtil) updateDebugState(debugTimeSinceLastFileChange
 }
 
 /** Process the event list, split it into chunks, then pass it to the HTTP POST output queue */
-func processAndSendEvents(eventsToSend []ChangedFileEntry, projectID string, postOutputQueue *HttpPostOutputQueue, cliState *CLIState) {
+func processAndSendEvents(eventsToSend []ChangedFileEntry, projectID string, postOutputQueue *HttpPostOutputQueue, projectList *ProjectList) {
 	sort.SliceStable(eventsToSend, func(i, j int) bool {
 
 		// Sort ascending by timestamp
@@ -172,14 +172,12 @@ func processAndSendEvents(eventsToSend []ChangedFileEntry, projectID string, pos
 	utils.LogInfo(
 		"Batch change summary for " + projectID + "@ " + strconv.FormatInt(mostRecentTimestamp.timestamp, 10) + ": " + changeSummary)
 
-	if cliState != nil {
-		// Inform CLI of changes
-		cliState.OnFileChangeEvent()
+	// Inform CLI of changes
+	projectList.CLIFileChangeUpdate(projectID)
 
-	} else {
+	// TODO: Remove this entire if block once CWCTL sync is mature.
+	if false {
 		// Use the old way of communicating file changes via POST packets.
-
-		// TODO: Remove this entire else block once CWCTL sync is mature.
 
 		var fileListsToSend [][]changedFileEntryJSON
 

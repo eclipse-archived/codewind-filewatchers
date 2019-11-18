@@ -106,13 +106,13 @@ export class HttpGetStatusThread {
 
                 for (const e of w.projects) {
 
-                    // Santity check the json parsing
+                    // Sanity check the JSON parsing
                     if (!e.projectID || !e.pathToMonitor) {
                         log.error("JSON parsing of GET watchlist endpoint failed with missing values");
                         return null;
                     }
 
-                    result.push(new ProjectToWatch(e, false));
+                    result.push(ProjectToWatch.createFromJson(e, false));
                 }
 
                 return result;

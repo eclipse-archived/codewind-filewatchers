@@ -47,7 +47,7 @@ export class CLIState {
         this._mockInstallerPath = process.env.MOCK_CWCTL_INSTALLER_PATH;
     }
 
-    public onFileChangeEvent() {
+    public onFileChangeEvent(projectCreationTimeInAbsoluteMsecsParam: number) {
 
         if (!this._projectPath || this._projectPath.trim().length === 0) {
             log.error("Project path passed to CLIState is empty, so ignoring file change event.");
@@ -60,6 +60,28 @@ export class CLIState {
         } else {
             this._isProcessActive = true;
             this._isRequestWaiting = false;
+
+            // Ensure that timestamp is updated with PCT, but only if timestamp is 0,
+            // AND there isn't a process running, AND pct is non-null.
+            {
+                const debugOldTimestampValue = this._timestamp;
+
+                // We only update the timestamp when 'callCLI' is true, because we don't want to
+                // step on the toes of another running CLI process (and that one will probably
+                // update the timestamp on it's own, with a more recent value, then ours)
+
+                // Update the timestamp to the project creation value, but ONLY IF it is zero.
+                if (projectCreationTimeInAbsoluteMsecsParam && projectCreationTimeInAbsoluteMsecsParam !== 0
+                    && this._timestamp === 0) {
+
+                    this._timestamp = projectCreationTimeInAbsoluteMsecsParam;
+
+                    log.info("Timestamp updated from " + debugOldTimestampValue + " to " + this._timestamp
+                        + " from project creation time.");
+
+                }
+            }
+
             this.callCLIAsync(); // Do not await here
         }
     }
@@ -106,7 +128,7 @@ export class CLIState {
 
         // If another file change list occurred during the last invocation, then start another one.
         if (this._isRequestWaiting) {
-            this.onFileChangeEvent();
+            this.onFileChangeEvent(null);
         }
     }
 
