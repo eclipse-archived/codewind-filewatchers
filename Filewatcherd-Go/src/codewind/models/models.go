@@ -11,17 +11,19 @@
 
 package models
 
+// ProjectToWatch ...
 type ProjectToWatch struct {
-	IgnoredFilenames           []string `json:"ignoredFilenames"`
-	IgnoredPaths               []string `json:"ignoredPaths"`
-	PathToMonitor              string   `json:"pathToMonitor"`
-	ProjectID                  string   `json:"projectID"`
-	ChangeType                 string   `json:"changeType"`
-	ProjectWatchStateID        string   `json:"projectWatchStateId"`
-	Type                       string   `json:"type"`
+	IgnoredFilenames    []string `json:"ignoredFilenames"`
+	IgnoredPaths        []string `json:"ignoredPaths"`
+	PathToMonitor       string   `json:"pathToMonitor"`
+	ProjectID           string   `json:"projectID"`
+	ChangeType          string   `json:"changeType"`
+	ProjectWatchStateID string   `json:"projectWatchStateId"`
+	Type                string   `json:"type"`
+	ProjectCreationTime int64    `json:"projectCreationTime"`
 }
 
-/** This is not currently used, but I reserve the right to clone all the things at a later date. */
+// Clone performs a deep copy of a ProjectToWatch
 func (entry *ProjectToWatch) Clone() *ProjectToWatch {
 
 	var newIgnoredFilenames []string
@@ -50,21 +52,26 @@ func (entry *ProjectToWatch) Clone() *ProjectToWatch {
 		entry.ChangeType,
 		entry.ProjectWatchStateID,
 		entry.Type,
+		entry.ProjectCreationTime,
 	}
 }
 
+// WatchlistEntries ...
 type WatchlistEntries []ProjectToWatch
 
+// WatchlistEntryList ...
 type WatchlistEntryList struct {
 	Projects WatchlistEntries `json:"projects"`
 }
 
+// WatchEventEntry ...
 type WatchEventEntry struct {
 	EventType string
 	Path      string
 	IsDir     bool
 }
 
+// WatchChangeJson ...
 type WatchChangeJson struct {
 	Type     string           `json:"type"`
 	Projects WatchlistEntries `json:"projects"`

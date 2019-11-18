@@ -17,6 +17,7 @@ export interface IWatchedProjectJson {
   ignoredFilenames: string[];
   changeType: string;
   type: string;
+  projectCreationTime: number;
 }
 
 export interface IWatchedProjectListJson {
