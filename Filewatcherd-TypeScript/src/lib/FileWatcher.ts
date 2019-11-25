@@ -271,6 +271,7 @@ export class FileWatcher {
             const options = {
                 body: payload,
                 json: true,
+                rejectUnauthorized : false,
                 resolveWithFullResponse: true,
                 timeout: 20000,
             };
