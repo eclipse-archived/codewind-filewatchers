@@ -75,6 +75,7 @@ export class HttpGetStatusThread {
 
         const options = {
             json: true,
+            rejectUnauthorized : false,
             resolveWithFullResponse: true,
             timeout: 20000,
         };

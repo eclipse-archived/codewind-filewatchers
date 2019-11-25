@@ -134,7 +134,9 @@ export class WebSocketManagerThread {
 
                 try {
 
-                    ws = new WebSocket(this._wsBaseUrl + "/websockets/file-changes/v1");
+                    ws = new WebSocket(this._wsBaseUrl + "/websockets/file-changes/v1", {
+                        rejectUnauthorized: false,
+                    });
 
                     const threadReference = this;
 
