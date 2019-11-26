@@ -22,7 +22,7 @@ This will produce a `filewatcherd-node_(version).tar.gz` file.
 
 #### B) Setup a VS Code Development environment
 
-Follow the [Developing VS Code instructions](https://github.com/eclipse/codewind-vscode/blob/master/DEVELOPING.md) to setup a VS Code development environment that contains the Codewind VS Code extension source.
+Follow the [Developing Codewind for VS Code](https://github.com/eclipse/codewind-vscode/blob/master/DEVELOPING.md) to setup a VS Code development environment that contains the Codewind VS Code extension source.
 
 #### C) Install the new `filewatcher.tar.gz` into VS Code
 ```
@@ -34,6 +34,4 @@ npm install (path to `filewatcherd-(version).tar.gz` from step A)
 #### D) Launch VS Code
 
 Restart VS Code. Then, hit F5 to launch the debugger. It should build, compile, and start the Codewind VS Code extension. See [DEVELOPING.md](https://github.com/eclipse/codewind-vscode/blob/master/DEVELOPING.md) for additional information on launching a VS Code extension.
-
-
 
