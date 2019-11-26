@@ -11,8 +11,6 @@ The Java filewatcher daemon is fully integrated into the [Codewind Eclipse](http
 
 If running on Windows, run `npm-package.sh` using [WSL](https://docs.microsoft.com/en-us/windows/wsl/about) or [MSYS2](https://www.msys2.org/).
 
-(Run on Mac or Linux, don't use Windows)
-
 #### A) Build Filewatcher package
 ```
 git clone https://github.com/codewind-eclipse/codewind-filewatchers
