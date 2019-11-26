@@ -4,7 +4,7 @@
 
 ## Building and testing the Java filewatcher daemon
 
-The Java filewatcher daemon is fully integrated into the [Codewind Eclipse](https://github.com/eclipse/codewind-eclipse#) codebase. To build and run Codewind Eclipse with this filewatcher, you only need to follow [the standard 'Developing Codewind Eclipse' instructions](https://github.com/eclipse/codewind-eclipse#developing-codewind-for-eclipse):
+The Java filewatcher daemon is fully integrated into the [Codewind Eclipse](https://github.com/eclipse/codewind-eclipse#) codebase. To build and run Codewind Eclipse with this filewatcher, you only need to follow [the standard 'Developing Codewind Eclipse' instructions](https://github.com/eclipse/codewind-eclipse#developing-codewind-for-eclipse).
 
 
 ## Building and testing the Node filewatcher daemon
