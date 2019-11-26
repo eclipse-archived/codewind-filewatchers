@@ -25,7 +25,7 @@ This will produce a `filewatcherd-node_(version).tar.gz` file.
 
 Follow the [Developing VSCode instructions](https://github.com/eclipse/codewind-vscode/blob/master/DEVELOPING.md) to setup a VSCode development environment that contains the Codewind VSCode extension source.
 
-#### C) Install the new filewatcher.tar.gz into VSCode
+#### C) Install the new `filewatcher.tar.gz` into VSCode
 ```
 cd (path to git repository from step B)/codewind-vscode/dev
 npm uninstall codewind-filewatcher
