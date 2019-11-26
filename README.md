@@ -13,5 +13,8 @@ We welcome submitting issues and contributions.
 1. [Submitting bugs](https://github.com/eclipse/codewind-filewatchers/issues)
 2. [Contributing](CONTRIBUTING.md)
 
+## Developing
+To develop and debug the Codewind Filewatchers, see [DEVELOPING.md](DEVELOPING.md).
+
 ## License
 [EPL 2.0](https://www.eclipse.org/legal/epl-2.0/)
