@@ -276,6 +276,7 @@ export class FileWatcher {
 
             const options = {
                 body: payload,
+                followRedirect: false,
                 json: true,
                 rejectUnauthorized: false,
                 resolveWithFullResponse: true,
@@ -301,8 +302,11 @@ export class FileWatcher {
                     log.error("Unexpected error code " + result.statusCode
                         + " from '" + url + "' for " + ptw.projectId);
 
-                    // TODO: Is this the correct way to identify bad tokens?
-                    if (authToken && authToken.accessToken && result.statusCode && result.statusCode === 403) {
+                    // Inform bad token if we are redirected to an OIDC endpoint
+                    if (authToken && authToken.accessToken && result.statusCode && result.statusCode === 302
+                        && result.headers && result.headers.location
+                        && result.headers.location.indexOf("openid-connect/auth") !== -1) {
+
                         this._authTokenWrapper.informBadToken(authToken);
                     }
 
@@ -315,6 +319,17 @@ export class FileWatcher {
             } catch (err) {
                 log.error("Unable to connect to '" + url + "', " + err.message + " for " + ptw.projectId);
                 sendSuccess = false;
+
+                // Inform bad token if we are redirected to an OIDC endpoint
+                if (err.statusCode === 302 && err.response && err.response.headers && err.response.headers.location
+                    && err.response.headers.location.indexOf("openid-connect/auth") !== -1) {
+
+                    if (authToken && authToken.accessToken) {
+                        this._authTokenWrapper.informBadToken(authToken);
+                    }
+
+                }
+
             }
 
             if (!sendSuccess) {

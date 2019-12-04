@@ -74,8 +74,9 @@ export class HttpGetStatusThread {
     private async doHttpGet(): Promise<ProjectToWatch[]> {
 
         const options = {
+            followRedirect: false,
             json: true,
-            rejectUnauthorized : false,
+            rejectUnauthorized: false,
             resolveWithFullResponse: true,
             timeout: 20000,
         } as request.RequestPromiseOptions;
@@ -97,7 +98,7 @@ export class HttpGetStatusThread {
 
             const httpResult = await request.get(url, options);
 
-            if (httpResult.statusCode && httpResult.statusCode === 200 && httpResult.body ) {
+            if (httpResult.statusCode && httpResult.statusCode === 200 && httpResult.body) {
 
                 // Strip EOL characters to ensure it fits on one log line.
                 let bodyVal = JSON.stringify(httpResult.body);
@@ -129,8 +130,11 @@ export class HttpGetStatusThread {
 
             } else {
 
-                // TODO: Is this the correct way to identify bad tokens?
-                if (authToken && authToken.accessToken && httpResult.statusCode && httpResult.statusCode === 403) {
+                // Inform bad token if we are redirected to an OIDC endpoint
+                if (authToken && authToken.accessToken && httpResult.statusCode && httpResult.statusCode === 302
+                    && httpResult.headers && httpResult.headers.location
+                    && httpResult.headers.location.indexOf("openid-connect/auth") !== -1) {
+
                     authTokenWrapper.informBadToken(authToken);
                 }
 
@@ -138,7 +142,17 @@ export class HttpGetStatusThread {
             }
 
         } catch (err) {
-            log.error("GET request failed. [" + (err.message) + "]");
+            log.error("GET request failed. [" + (err.message) + "] (" + err.statusCode + ")");
+
+            // Inform bad token if we are redirected to an OIDC endpoint
+            if (err.statusCode === 302 && err.response && err.response.headers && err.response.headers.location
+                && err.response.headers.location.indexOf("openid-connect/auth") !== -1) {
+
+                if (authToken && authToken.accessToken) {
+                    authTokenWrapper.informBadToken(authToken);
+                }
+
+            }
 
             return null;
         }
@@ -153,7 +167,7 @@ export class HttpGetStatusThread {
 
             const delay = ExponentialBackoffUtil.getDefaultBackoffUtil(4000);
 
-            let  result: ProjectToWatch[] = null;
+            let result: ProjectToWatch[] = null;
 
             while (!success && !this._disposed) {
 

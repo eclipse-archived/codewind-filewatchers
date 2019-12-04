@@ -181,6 +181,7 @@ export class HttpPostOutputQueue {
 
         const options = {
             body: payload,
+            followRedirect: false,
             json: true,
             rejectUnauthorized : false,
             resolveWithFullResponse: true,
@@ -201,7 +202,8 @@ export class HttpPostOutputQueue {
 
             if (result.statusCode !== 200) {
 
-                // TODO: Is this the correct way to identify bad tokens?
+                // TODO: In the unlikely event that this class is NOT deleted when cwctl is stable, then convert
+                // this to check for 302, like the other HTTP endpoints
                 if (authToken && authToken.accessToken && result.statusCode && result.statusCode === 403) {
                     this._authTokenWrapper.informBadToken(authToken);
                 }
