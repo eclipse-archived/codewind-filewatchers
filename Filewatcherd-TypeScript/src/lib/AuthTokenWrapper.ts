@@ -79,6 +79,8 @@ export class AuthTokenWrapper {
             this._invalidKeysSet.delete(keyToRemove.accessToken);
         }
 
+        this._authTokenProvider.informReceivedInvalidAuthToken(token);
+
     }
 
     /**
