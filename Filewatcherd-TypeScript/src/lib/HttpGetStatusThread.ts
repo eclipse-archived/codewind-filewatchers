@@ -78,7 +78,16 @@ export class HttpGetStatusThread {
             rejectUnauthorized : false,
             resolveWithFullResponse: true,
             timeout: 20000,
-        };
+        } as request.RequestPromiseOptions;
+
+        const authTokenWrapper = this._parent.authTokenWrapper;
+        const authToken = authTokenWrapper.getLatestToken();
+        if (authToken && authToken.accessToken) {
+
+            options.auth = {
+                bearer: authToken.accessToken,
+            };
+        }
 
         try {
 
@@ -117,7 +126,14 @@ export class HttpGetStatusThread {
                 }
 
                 return result;
+
             } else {
+
+                // TODO: Is this the correct way to identify bad tokens?
+                if (authToken && authToken.accessToken && httpResult.statusCode && httpResult.statusCode === 403) {
+                    authTokenWrapper.informBadToken(authToken);
+                }
+
                 return null;
             }
 

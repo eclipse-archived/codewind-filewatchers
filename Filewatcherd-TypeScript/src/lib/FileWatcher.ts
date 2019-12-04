@@ -23,8 +23,10 @@ import { ProjectToWatchFromWebSocket } from "./ProjectToWatchFromWebSocket";
 import { WebSocketManagerThread } from "./WebSocketManagerThread";
 
 import * as request from "request-promise-native";
+import { AuthTokenWrapper } from "./AuthTokenWrapper";
 import { DebugTimer } from "./DebugTimer";
 import { ExponentialBackoffUtil } from "./ExponentialBackoffUtil";
+import { IAuthTokenProvider } from "./IAuthTokenProvider";
 import { IWatchService } from "./IWatchService";
 import * as log from "./Logger";
 
@@ -56,13 +58,17 @@ export class FileWatcher {
 
     private readonly _installerPath: string; // May be null
 
+    private readonly _authTokenWrapper: AuthTokenWrapper;
+
     private _disposed: boolean = false;
 
     constructor(urlParam: string, internalWatchService: IWatchService, externalWatchService: IWatchService,
-                installerPath: string, clientUuid: string) {
+                installerPath: string, clientUuid: string, authTokenProvider: IAuthTokenProvider) {
 
         this._clientUuid = clientUuid;
         this._installerPath = installerPath;
+
+        this._authTokenWrapper = new AuthTokenWrapper(authTokenProvider);
 
         this._internalWatchService = internalWatchService;
         this._internalWatchService.setParent(this);
@@ -271,10 +277,18 @@ export class FileWatcher {
             const options = {
                 body: payload,
                 json: true,
-                rejectUnauthorized : false,
+                rejectUnauthorized: false,
                 resolveWithFullResponse: true,
                 timeout: 20000,
-            };
+            } as request.RequestPromiseOptions;
+
+            const authToken = this._authTokenWrapper.getLatestToken();
+            if (authToken && authToken.accessToken) {
+
+                options.auth = {
+                    bearer: authToken.accessToken,
+                };
+            }
 
             const url = this._baseUrl + "/api/v1/projects/" + ptw.projectId + "/file-changes/"
                 + ptw.projectWatchStateId + "/status?clientUuid=" + this._clientUuid;
@@ -286,6 +300,11 @@ export class FileWatcher {
                 if (result.statusCode !== 200) {
                     log.error("Unexpected error code " + result.statusCode
                         + " from '" + url + "' for " + ptw.projectId);
+
+                    // TODO: Is this the correct way to identify bad tokens?
+                    if (authToken && authToken.accessToken && result.statusCode && result.statusCode === 403) {
+                        this._authTokenWrapper.informBadToken(authToken);
+                    }
 
                     sendSuccess = false;
                 } else {
@@ -573,6 +592,10 @@ export class FileWatcher {
     /** May return null if the installer path is not defined. */
     public get installerPath(): string {
         return this._installerPath;
+    }
+
+    public get authTokenWrapper(): AuthTokenWrapper {
+        return this._authTokenWrapper;
     }
 
 }
