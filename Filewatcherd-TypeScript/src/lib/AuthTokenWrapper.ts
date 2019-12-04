@@ -71,11 +71,11 @@ export class AuthTokenWrapper {
         // We have a new token that we have not previously reported as invalid.
 
         this._invalidKeysSet.add(token.accessToken);
-        this._recentInvalidKeysQueue.push(token);
+        this._recentInvalidKeysQueue.push(token); // append to end
 
         while (this._recentInvalidKeysQueue.length > AuthTokenWrapper.KEEP_LAST_X_STALE_KEYS) {
 
-            const keyToRemove = this._recentInvalidKeysQueue.shift(); // remove from end
+            const keyToRemove = this._recentInvalidKeysQueue.shift(); // remove from front
             this._invalidKeysSet.delete(keyToRemove.accessToken);
         }
 
