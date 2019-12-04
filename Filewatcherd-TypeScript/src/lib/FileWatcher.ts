@@ -83,7 +83,7 @@ export class FileWatcher {
 
         this._baseUrl = PathUtils.stripTrailingSlash(urlParam);
 
-        this._outputQueue = new HttpPostOutputQueue(this._baseUrl);
+        this._outputQueue = new HttpPostOutputQueue(this._baseUrl, this._authTokenWrapper);
 
         let calculatedWsUrl = this._baseUrl;
         calculatedWsUrl = calculatedWsUrl.replace("http://", "ws://");
