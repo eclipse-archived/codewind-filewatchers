@@ -105,6 +105,9 @@ export class WebSocketManagerThread {
             return;
         }
 
+        // TODO: Add token-based authentication to the WebSocket, once support is implemented server-side.
+        // (https://github.com/eclipse/codewind/issues/1342)
+
         try {
 
             if (this._previousWebSocket) {

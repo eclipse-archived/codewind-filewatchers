@@ -23,8 +23,10 @@ import { ProjectToWatchFromWebSocket } from "./ProjectToWatchFromWebSocket";
 import { WebSocketManagerThread } from "./WebSocketManagerThread";
 
 import * as request from "request-promise-native";
+import { AuthTokenWrapper } from "./AuthTokenWrapper";
 import { DebugTimer } from "./DebugTimer";
 import { ExponentialBackoffUtil } from "./ExponentialBackoffUtil";
+import { IAuthTokenProvider } from "./IAuthTokenProvider";
 import { IWatchService } from "./IWatchService";
 import * as log from "./Logger";
 
@@ -56,13 +58,17 @@ export class FileWatcher {
 
     private readonly _installerPath: string; // May be null
 
+    private readonly _authTokenWrapper: AuthTokenWrapper;
+
     private _disposed: boolean = false;
 
     constructor(urlParam: string, internalWatchService: IWatchService, externalWatchService: IWatchService,
-                installerPath: string, clientUuid: string) {
+                installerPath: string, clientUuid: string, authTokenProvider: IAuthTokenProvider) {
 
         this._clientUuid = clientUuid;
         this._installerPath = installerPath;
+
+        this._authTokenWrapper = new AuthTokenWrapper(authTokenProvider);
 
         this._internalWatchService = internalWatchService;
         this._internalWatchService.setParent(this);
@@ -77,7 +83,7 @@ export class FileWatcher {
 
         this._baseUrl = PathUtils.stripTrailingSlash(urlParam);
 
-        this._outputQueue = new HttpPostOutputQueue(this._baseUrl);
+        this._outputQueue = new HttpPostOutputQueue(this._baseUrl, this._authTokenWrapper);
 
         let calculatedWsUrl = this._baseUrl;
         calculatedWsUrl = calculatedWsUrl.replace("http://", "ws://");
@@ -270,11 +276,20 @@ export class FileWatcher {
 
             const options = {
                 body: payload,
+                followRedirect: false,
                 json: true,
-                rejectUnauthorized : false,
+                rejectUnauthorized: false,
                 resolveWithFullResponse: true,
                 timeout: 20000,
-            };
+            } as request.RequestPromiseOptions;
+
+            const authToken = this._authTokenWrapper.getLatestToken();
+            if (authToken && authToken.accessToken) {
+
+                options.auth = {
+                    bearer: authToken.accessToken,
+                };
+            }
 
             const url = this._baseUrl + "/api/v1/projects/" + ptw.projectId + "/file-changes/"
                 + ptw.projectWatchStateId + "/status?clientUuid=" + this._clientUuid;
@@ -287,6 +302,14 @@ export class FileWatcher {
                     log.error("Unexpected error code " + result.statusCode
                         + " from '" + url + "' for " + ptw.projectId);
 
+                    // Inform bad token if we are redirected to an OIDC endpoint
+                    if (authToken && authToken.accessToken && result.statusCode && result.statusCode === 302
+                        && result.headers && result.headers.location
+                        && result.headers.location.indexOf("openid-connect/auth") !== -1) {
+
+                        this._authTokenWrapper.informBadToken(authToken);
+                    }
+
                     sendSuccess = false;
                 } else {
                     log.debug("PUT request to '" + url + "' succeeded for " + ptw.projectId);
@@ -296,6 +319,17 @@ export class FileWatcher {
             } catch (err) {
                 log.error("Unable to connect to '" + url + "', " + err.message + " for " + ptw.projectId);
                 sendSuccess = false;
+
+                // Inform bad token if we are redirected to an OIDC endpoint
+                if (err.statusCode === 302 && err.response && err.response.headers && err.response.headers.location
+                    && err.response.headers.location.indexOf("openid-connect/auth") !== -1) {
+
+                    if (authToken && authToken.accessToken) {
+                        this._authTokenWrapper.informBadToken(authToken);
+                    }
+
+                }
+
             }
 
             if (!sendSuccess) {
@@ -573,6 +607,10 @@ export class FileWatcher {
     /** May return null if the installer path is not defined. */
     public get installerPath(): string {
         return this._installerPath;
+    }
+
+    public get authTokenWrapper(): AuthTokenWrapper {
+        return this._authTokenWrapper;
     }
 
 }

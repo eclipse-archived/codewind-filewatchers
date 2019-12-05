@@ -12,6 +12,7 @@
 import * as request from "request-promise-native";
 import { ExponentialBackoffUtil } from "./ExponentialBackoffUtil";
 
+import { AuthTokenWrapper } from "./AuthTokenWrapper";
 import * as log from "./Logger";
 import { PostQueueChunk } from "./PostQueueChunk";
 import { PostQueueChunkGroup } from "./PostQueueChunkGroup";
@@ -49,11 +50,14 @@ export class HttpPostOutputQueue {
 
     private readonly _failureDelay: ExponentialBackoffUtil;
 
-    constructor(serverBaseUrl: string) {
+    private readonly _authTokenWrapper: AuthTokenWrapper;
+
+    constructor(serverBaseUrl: string, authTokenWrapper: AuthTokenWrapper) {
         this._serverBaseUrl = serverBaseUrl;
         this._queue = new Array<PostQueueChunkGroup>();
         this._activeRequests = 0;
         this._failureDelay = ExponentialBackoffUtil.getDefaultBackoffUtil(4000);
+        this._authTokenWrapper = authTokenWrapper;
     }
 
     public async informStateChangeAsync() {
@@ -177,17 +181,33 @@ export class HttpPostOutputQueue {
 
         const options = {
             body: payload,
+            followRedirect: false,
             json: true,
             rejectUnauthorized : false,
             resolveWithFullResponse: true,
             timeout: 20000,
-        };
+        } as request.RequestPromiseOptions;
+
+        const authToken = this._authTokenWrapper.getLatestToken();
+        if (authToken && authToken.accessToken) {
+
+            options.auth = {
+                bearer: authToken.accessToken,
+            };
+        }
 
         log.info("Issuing POST request to '" + url + "'");
         try {
             const result = await request.post(url, options);
 
             if (result.statusCode !== 200) {
+
+                // TODO: In the unlikely event that this class is NOT deleted when cwctl is stable, then convert
+                // this to check for 302, like the other HTTP endpoints
+                if (authToken && authToken.accessToken && result.statusCode && result.statusCode === 403) {
+                    this._authTokenWrapper.informBadToken(authToken);
+                }
+
                 log.error("Unexpected error code " + result.statusCode + " from '" + url + "'");
                 return false;
             }
