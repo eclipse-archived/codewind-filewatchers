@@ -27,7 +27,7 @@ export interface IAuthTokenProvider {
      * rather then block on issuing a new I/O or CWCTL request to acquire a new
      * token.)
      */
-    getLatestAuthToken(): FWAuthToken;
+    getLatestAuthToken(): FWAuthToken | undefined;
 
     /**
      * Inform the IDE that the server told us that our current token is invalid, at
