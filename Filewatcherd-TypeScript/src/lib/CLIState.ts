@@ -146,7 +146,8 @@ export class CLIState {
             // Example:
             // cwctl project sync -p /Users/tobes/workspaces/git/eclipse/codewind/codewind-workspace/lib5 \
             //      -i b1a78500-eaa5-11e9-b0c1-97c28a7e77c7 -t 12345
-            args = ["project", "sync", "-p", this._projectPath, "-i", this._projectId, "-t", "" + lastTimestamp];
+            args = ["--insecure", "project", "sync", "-p", this._projectPath, "-i", this._projectId, "-t",
+                "" + lastTimestamp];
         } else {
             args = ["-jar", this._mockInstallerPath, "-p", this._projectPath, "-i", this._projectId, "-t",
                 "" + lastTimestamp];
