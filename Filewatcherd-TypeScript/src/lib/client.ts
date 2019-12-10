@@ -46,23 +46,26 @@ export default async function createWatcher(codewindURL: string, logDir?: string
         }
     }
 
-    log.setLogLevel(logLevel);
+    if (!log.LogSettings.getInstance().internalGetFileLogger()) {
+        log.setLogLevel(logLevel);
 
-    if (!logDir) {
-        logDir = path.join(os.homedir(), ".codewind");
+        if (!logDir) {
+            logDir = path.join(os.homedir(), ".codewind");
+        }
+
+        if (!fs.existsSync(logDir)) {
+            fs.mkdirSync(logDir);
+        }
+
+        console.log("codewind-filewatcher logging to " + logDir + " with log level " + log.logLevelToString(logLevel)
+            + " on platform '" + process.platform + "'");
+
+        const fileLogger = new FileLogger(logDir);
+
+        log.LogSettings.getInstance().setFileLogger(fileLogger);
+        log.LogSettings.getInstance().setOutputLogsToScreen(true);
+
     }
-    if (!fs.existsSync(logDir)) {
-        fs.mkdirSync(logDir);
-    }
-
-    const fileLogger = new FileLogger(logDir);
-
-    console.log("codewind-filewatcher logging to " + logDir + " with log level " + log.logLevelToString(logLevel)
-        + " on platform '" + process.platform + "'");
-
-    log.LogSettings.getInstance().setFileLogger(fileLogger);
-
-    log.LogSettings.getInstance().setOutputLogsToScreen(true);
 
     const watchService = new WatchService();
 
