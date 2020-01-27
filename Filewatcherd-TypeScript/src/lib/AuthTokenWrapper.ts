@@ -41,6 +41,7 @@ export class AuthTokenWrapper {
     private readonly _authTokenProvider: IAuthTokenProvider;
 
     constructor(authTokenProvider: IAuthTokenProvider) {
+        this._recentInvalidKeysQueue = new Array<FWAuthToken>();
         this._authTokenProvider = authTokenProvider;
         this._invalidKeysSet = new Set();
     }

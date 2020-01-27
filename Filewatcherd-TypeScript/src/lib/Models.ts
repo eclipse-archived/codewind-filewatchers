@@ -18,8 +18,14 @@ export interface IWatchedProjectJson {
   changeType: string;
   type: string;
   projectCreationTime: number;
+  refPaths: IRefPathEntry[];
 }
 
 export interface IWatchedProjectListJson {
   projects: IWatchedProjectJson[];
+}
+
+export interface IRefPathEntry {
+  from: string;
+  to: string;
 }

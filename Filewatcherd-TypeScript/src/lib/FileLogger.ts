@@ -89,7 +89,7 @@ export class FileLogger {
             if (this._fd === -2) { return; }
 
             if (this._fd >= 0) { // Close old file
-                fs.close(this._fd, (e) => {
+                fs.close(this._fd, (_) => {
                     console.error("Unable to close file descriptor.");
                 });
             }

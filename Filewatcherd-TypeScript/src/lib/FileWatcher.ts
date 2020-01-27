@@ -27,6 +27,7 @@ import { AuthTokenWrapper } from "./AuthTokenWrapper";
 import { DebugTimer } from "./DebugTimer";
 import { ExponentialBackoffUtil } from "./ExponentialBackoffUtil";
 import { IAuthTokenProvider } from "./IAuthTokenProvider";
+import { IndividualFileWatchService } from "./IndividualFileWatchService";
 import { IWatchService } from "./IWatchService";
 import * as log from "./Logger";
 
@@ -62,6 +63,8 @@ export class FileWatcher {
 
     private _disposed: boolean = false;
 
+    private _individualFileWatchService: IndividualFileWatchService;
+
     constructor(urlParam: string, internalWatchService: IWatchService, externalWatchService: IWatchService,
                 installerPath: string, clientUuid: string, authTokenProvider: IAuthTokenProvider) {
 
@@ -82,6 +85,8 @@ export class FileWatcher {
         this._projectsMap = new Map<string, ProjectObject>();
 
         this._baseUrl = PathUtils.stripTrailingSlash(urlParam);
+
+        this._individualFileWatchService = new IndividualFileWatchService(this);
 
         this._outputQueue = new HttpPostOutputQueue(this._baseUrl, this._authTokenWrapper);
 
@@ -222,6 +227,51 @@ export class FileWatcher {
         } else {
             log.severe("Could not locate event processing for project id " + match.projectId);
         }
+    }
+
+    public internal_receiveIndividualChangesFileList(projectId: string, changedFiles: Set<ChangedFileEntry>) {
+
+        const projectRootPaths: string[] = [];
+
+        for (const projectObject of this._projectsMap.values()) {
+            projectRootPaths.push(projectObject.projectToWatch.pathToMonitor);
+        }
+
+        // Iterative through the changedFiles parameter, and remove any entries that are under the
+        // project roots.
+        const filteredChanges: ChangedFileEntry[] = [];
+        for (const cfParam of changedFiles) {
+
+            let match = false;
+
+            for (const projectRoot of projectRootPaths) {
+
+                if (cfParam.path.startsWith(projectRoot)) {
+                    log.info("Ignoring file change that was under a project root: " + cfParam.path
+                        + ", project root: " + projectRoot);
+                    match = true;
+                    break;
+                }
+            }
+
+            if (!match) {
+                filteredChanges.push(cfParam);
+            }
+
+        }
+
+        if (filteredChanges.length === 0) {
+            log.info("No remaining individual file changes to transmit");
+            return;
+        }
+
+        const po = this._projectsMap.get(projectId);
+        if (po) {
+            po.batchUtil.addChangedFiles(filteredChanges);
+        } else {
+            log.severe("Could not locate event processing for project id " + projectId);
+        }
+
     }
 
     public sendBulkFileChanges(projectId: string, mostRecentEntryTimestamp: number, base64Compressed: string[]) {
@@ -381,6 +431,7 @@ export class FileWatcher {
             e.batchUtil.dispose();
         });
 
+        this._individualFileWatchService.dispose();
     }
 
     public generateDebugString(): string {
@@ -445,6 +496,7 @@ export class FileWatcher {
 
         po.watchService.removePath(fileToMonitor, ptw);
 
+        this._individualFileWatchService.setFilesToWatch(removedProject.projectId, []);
     }
 
     private createOrUpdateProjectToWatch(ptw: ProjectToWatch) {
@@ -476,10 +528,14 @@ export class FileWatcher {
 
             watchService.addPath(fileToMonitor, ptw);
 
+            this._individualFileWatchService.setFilesToWatch(ptw.projectId, ptw.filesToWatch);
+
             log.info("Added new project with path '" + ptw.pathToMonitor
                 + "' to watch list, with watch directory: '" + fileToMonitor + "'");
 
         } else {
+
+            let wasProjectObjectUpdatedInThisBlock = false;
 
             // Otherwise update existing project to watch, if needed
             const oldProjectToWatch = po.projectToWatch;
@@ -570,6 +626,7 @@ export class FileWatcher {
                     // This logic may cause the PO to be updated twice (once here, and once below,
                     // but this is fine)
                     po.updateProjectToWatch(ptw);
+                    wasProjectObjectUpdatedInThisBlock = true;
 
                 }
 
@@ -583,6 +640,7 @@ export class FileWatcher {
 
                 // Existing project to watch
                 po.updateProjectToWatch(ptw);
+                wasProjectObjectUpdatedInThisBlock = true;
 
                 // Remove the old path
                 po.watchService.removePath(fileToMonitor, oldProjectToWatch);
@@ -600,7 +658,38 @@ export class FileWatcher {
                 log.info("The project watch state has not changed for project " + ptw.projectId);
             }
 
-        }
+            // Compare new filesToWatch value with old, and update if different.
+            {
+                const sortAndReduce = function name(strarr: string[]): string {
+
+                    let newStrArr = [...strarr];
+                    newStrArr = newStrArr.sort();
+
+                    let result = "";
+
+                    for (const str of newStrArr) {
+                        result += str + "//";
+                    }
+                    return result;
+                };
+
+                const newPtwFtw = sortAndReduce(ptw.filesToWatch);
+                const oldPtwFtw = sortAndReduce(oldProjectToWatch.filesToWatch);
+
+                if (newPtwFtw !== oldPtwFtw) {
+                    log.info("filesToWatch value updated in " + ptw.projectId);
+
+                    // We only need to update project object if we didn't previously update it in the method)
+                    if (!wasProjectObjectUpdatedInThisBlock) {
+                        po.updateProjectToWatch(ptw);
+                    }
+                    // Finally, update the list of watched files, if applicable.
+                    this._individualFileWatchService.setFilesToWatch(ptw.projectId, ptw.filesToWatch);
+                }
+
+            }
+
+        } // end existing project-to-watch else
 
     }
 

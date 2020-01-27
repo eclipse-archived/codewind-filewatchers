@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (c) 2019 IBM Corporation and others.
+* Copyright (c) 2019, 2020 IBM Corporation and others.
 * All rights reserved. This program and the accompanying materials
 * are made available under the terms of the Eclipse Public License v2.0
 * which accompanies this distribution, and is available at
@@ -155,7 +155,7 @@ export class WebSocketManagerThread {
                             resolve(true);
                         });
 
-                        ws.on("error", function error(en: WebSocket, errorFromFunction: Error) {
+                        ws.on("error", function error(_en: WebSocket, errorFromFunction: Error) {
                             log.error("Error handler called on WebSocket", errorFromFunction);
                             resolve(false);
                         });
