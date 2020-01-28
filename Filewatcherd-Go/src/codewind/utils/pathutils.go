@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (c) 2019 IBM Corporation and others.
+* Copyright (c) 2019, 2020 IBM Corporation and others.
 * All rights reserved. This program and the accompanying materials
 * are made available under the terms of the Eclipse Public License v2.0
 * which accompanies this distribution, and is available at
@@ -229,6 +229,7 @@ func (p *PathFilter) IsFilteredOutByFilename(pathParam string) bool {
 	return false
 }
 
+// IsFilteredOutByPath ...
 func (p *PathFilter) IsFilteredOutByPath(path string) bool {
 
 	if strings.Contains(path, "\\") {
@@ -236,13 +237,17 @@ func (p *PathFilter) IsFilteredOutByPath(path string) bool {
 		return false
 	}
 
+	result := false
+
 	for _, val := range p.pathExcludePatterns {
+
 		if val.MatchString(path) {
-			return true
+			result = true
+			break
 		}
 	}
 
-	return false
+	return result
 
 }
 
