@@ -156,7 +156,7 @@ export class IndividualFileWatchService {
     private threadRun() {
 
         if (this._timer) {
-            clearInterval(this._timer);
+            clearTimeout(this._timer);
         }
 
         this._timer = setTimeout(() => {
