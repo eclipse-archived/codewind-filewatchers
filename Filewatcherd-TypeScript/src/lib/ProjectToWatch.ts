@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (c) 2019 IBM Corporation and others.
+* Copyright (c) 2019, 2020 IBM Corporation and others.
 * All rights reserved. This program and the accompanying materials
 * are made available under the terms of the Eclipse Public License v2.0
 * which accompanies this distribution, and is available at
@@ -46,6 +46,10 @@ export class ProjectToWatch {
 
     public get external(): boolean {
         return this._external;
+    }
+
+    public get filesToWatch(): string[] {
+        return this._filesToWatch;
     }
 
     public get projectCreationTimeInAbsoluteMsecs(): number {
@@ -108,6 +112,12 @@ export class ProjectToWatch {
         // Replace the old value, with specified parameter.
         result._projectCreationTimeInAbsoluteMsecs = projectCreationTimeInAbsoluteMsecsParam;
 
+        const filesToWatch: string[] = [];
+        if (old.filesToWatch && old.filesToWatch.length > 0) {
+            old.filesToWatch.forEach((e) => { filesToWatch.push(e); });
+        }
+        result._filesToWatch = filesToWatch;
+
     }
 
     /** Copy the values from the JSON object into the given ProjectToWatch. */
@@ -146,6 +156,12 @@ export class ProjectToWatch {
 
         result._projectCreationTimeInAbsoluteMsecs = json.projectCreationTime;
 
+        const filesToWatch: string[] = [];
+        if (json.refPaths && json.refPaths.length > 0) {
+            json.refPaths.forEach((e) => { filesToWatch.push(e.from); });
+        }
+        result._filesToWatch = filesToWatch;
+
     }
 
     /**
@@ -162,6 +178,8 @@ export class ProjectToWatch {
     private _projectWatchStateId: string;
 
     private _external: boolean;
+
+    private _filesToWatch: string[];
 
     /** undefined if project time is not specified, a >0 value otherwise. */
     private _projectCreationTimeInAbsoluteMsecs: number;

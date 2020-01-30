@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (c) 2019 IBM Corporation and others.
+* Copyright (c) 2019, 2020 IBM Corporation and others.
 * All rights reserved. This program and the accompanying materials
 * are made available under the terms of the Eclipse Public License v2.0
 * which accompanies this distribution, and is available at
@@ -12,6 +12,8 @@
 import * as child_process from "child_process";
 import * as path from "path";
 import * as log from "./Logger";
+import { convertAbsoluteUnixStyleNormalizedPathToLocalFile } from "./PathUtils";
+import { ProjectToWatch } from "./ProjectToWatch";
 
 /* The purpose of this class is to call the cwctl project sync command, in order to allow the
  * Codewind CLI to detect and communicate file changes to the server.
@@ -39,6 +41,9 @@ export class CLIState {
     /** For automated testing only */
     private readonly _mockInstallerPath: string;
 
+    /** For automated testing only */
+    private _lastDebugPtwSeen: ProjectToWatch = undefined;
+
     constructor(projectId: string, installerPath: string, projectPath: string) {
         this._projectId = projectId;
         this._installerPath = installerPath;
@@ -47,11 +52,15 @@ export class CLIState {
         this._mockInstallerPath = process.env.MOCK_CWCTL_INSTALLER_PATH;
     }
 
-    public onFileChangeEvent(projectCreationTimeInAbsoluteMsecsParam: number) {
+    public onFileChangeEvent(projectCreationTimeInAbsoluteMsecsParam: number, debugPtw: ProjectToWatch) {
 
         if (!this._projectPath || this._projectPath.trim().length === 0) {
             log.error("Project path passed to CLIState is empty, so ignoring file change event.");
             return;
+        }
+
+        if (debugPtw) {
+            this._lastDebugPtwSeen = debugPtw;
         }
 
         // This, along with callCLIAsync(), ensures that only one instance of `project sync` is running at a time.
@@ -82,11 +91,11 @@ export class CLIState {
                 }
             }
 
-            this.callCLIAsync(); // Do not await here
+            this.callCLIAsync(this._lastDebugPtwSeen); // Do not await here
         }
     }
 
-    private async callCLIAsync() {
+    private async callCLIAsync(debugPtw: ProjectToWatch) {
 
         const DEBUG_FAKE_CMD_OUTPUT = false; // Enable this for debugging purposes.
 
@@ -106,7 +115,7 @@ export class CLIState {
 
             } else {
                 // Call CLI and wait for result
-                result = await this.runProjectCommand();
+                result = await this.runProjectCommand(debugPtw);
             }
 
             if (result) {
@@ -128,11 +137,11 @@ export class CLIState {
 
         // If another file change list occurred during the last invocation, then start another one.
         if (this._isRequestWaiting) {
-            this.onFileChangeEvent(null);
+            this.onFileChangeEvent(undefined, undefined);
         }
     }
 
-    private async runProjectCommand(): Promise<IRunProjectReturn> {
+    private async runProjectCommand(debugPtw: ProjectToWatch): Promise<IRunProjectReturn> {
 
         const executableDir = path.dirname(this._installerPath);
 
@@ -143,14 +152,37 @@ export class CLIState {
         const lastTimestamp = this._timestamp;
 
         if (!this._mockInstallerPath || this._mockInstallerPath.trim().length === 0) {
+            // Normal call to `cwctl project sync`
+
             // Example:
             // cwctl project sync -p /Users/tobes/workspaces/git/eclipse/codewind/codewind-workspace/lib5 \
             //      -i b1a78500-eaa5-11e9-b0c1-97c28a7e77c7 -t 12345
             args = ["--insecure", "project", "sync", "-p", this._projectPath, "-i", this._projectId, "-t",
                 "" + lastTimestamp];
         } else {
+
+            // The filewatcher is being run in an automated test scenario: we will now run a
+            // mock version of cwctl that simulates the project sync command. This mock
+            // version takes slightly different parameters.
+
+            // Convert filesToWatch to absolute paths
+            const convertedFilesToWatch = [];
+            for (const fileToWatch of debugPtw.filesToWatch) {
+                const val = convertAbsoluteUnixStyleNormalizedPathToLocalFile(fileToWatch);
+                convertedFilesToWatch.push(val);
+            }
+
+            // Create a simplified version of the project to watch JSON.
+            const simplifiedPtw = {
+                filesToWatch: convertedFilesToWatch,
+                ignoredFilenames: debugPtw.ignoredFilenames,
+                ignoredPaths: debugPtw.ignoredPaths,
+            };
+
+            const base64Json = new Buffer(JSON.stringify(simplifiedPtw)).toString("base64");
+
             args = ["-jar", this._mockInstallerPath, "-p", this._projectPath, "-i", this._projectId, "-t",
-                "" + lastTimestamp];
+                "" + lastTimestamp, "-projectJson", base64Json];
             firstArg = "java";
         }
 
@@ -207,7 +239,7 @@ export class CLIState {
                     };
 
                     log.info("Successfully ran installer command: " + debugStr);
-                    log.info("Output:" + outStr); // TODO: Convert to DEBUG once everything matures.
+                    log.info("Output:" + outStr + errStr); // TODO: Convert to DEBUG once everything matures.
                     resolve(result);
                 }
             });

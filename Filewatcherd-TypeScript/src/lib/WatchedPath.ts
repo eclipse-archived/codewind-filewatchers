@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (c) 2019 IBM Corporation and others.
+* Copyright (c) 2019, 2020 IBM Corporation and others.
 * All rights reserved. This program and the accompanying materials
 * are made available under the terms of the Eclipse Public License v2.0
 * which accompanies this distribution, and is available at
@@ -107,7 +107,7 @@ export class WatchedPath {
         const pathFilterConst = this._pathFilter;
 
         /** Decide what to ignore using our custom function; true if should ignore, false otherwise. */
-        const ignoreFunction = (a: string, b: any) => {
+        const ignoreFunction = (a: string, _: any) => {
             if (!a) { return false; }
 
             a = convertAbsolutePathWithUnixSeparatorsToProjectRelativePath(normalizePath(a), normalizedPathConst);
@@ -140,7 +140,7 @@ export class WatchedPath {
             .on("addDir", (path) => this.handleDirChange(path, "CREATE"))
             .on("unlinkDir", (path) => this.handleDirChange(path, "DELETE"))
             .on("error", (error) => log.severe(`Watcher error: ${error}`, error))
-            .on("raw", (event, path, details) => {
+            .on("raw", (event, path, _) => {
                 log.debug("Watcher raw event info:" + event + "|" + path);
 
                 if (path === this._pathRoot && !existsSync(path)) {

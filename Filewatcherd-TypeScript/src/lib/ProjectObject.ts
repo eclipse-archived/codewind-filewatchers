@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (c) 2019 IBM Corporation and others.
+* Copyright (c) 2019, 2020 IBM Corporation and others.
 * All rights reserved. This program and the accompanying materials
 * are made available under the terms of the Eclipse Public License v2.0
 * which accompanies this distribution, and is available at
@@ -63,7 +63,7 @@ export class ProjectObject {
     }
 
     public informCwctlOfFileChangesAsync() {
-        this._cliState.onFileChangeEvent(this._projectToWatch.projectCreationTimeInAbsoluteMsecs);
+        this._cliState.onFileChangeEvent(this._projectToWatch.projectCreationTimeInAbsoluteMsecs, this._projectToWatch);
     }
 
     public get projectToWatch(): ProjectToWatch {
