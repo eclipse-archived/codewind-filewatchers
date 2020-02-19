@@ -15,12 +15,12 @@ echo "Starting Node filewatcher ------------------------------------------------
 
 NODE_LOG=`mktemp`
 
-cd $SCRIPT_LOCT/../Filewatcherd-Filewatcherd-TypeScript
+cd $SCRIPT_LOCT/../Filewatcherd-TypeScript
 
 export CODEWIND_URL_ROOT="http://localhost:9090"
 export MOCK_CWCTL_INSTALLER_PATH="$MOCK_CWCTL_JAR"
 
-npm ci
+npm install
 npm run serve > $NODE_LOG 2>&1 &
 NODE_PID=$!
 
