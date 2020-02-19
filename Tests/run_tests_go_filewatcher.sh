@@ -3,6 +3,7 @@
 export SCRIPT_LOCT=$( cd $( dirname $0 ); pwd )
 cd $SCRIPT_LOCT
 
+set -euo pipefail
 
 cd $SCRIPT_LOCT/MockCwctlSync
 mvn package
@@ -14,10 +15,7 @@ echo "Starting Go filewatcher --------------------------------------------------
 
 GO_LOG=`mktemp`
 
-cd ..
-pushd . > /dev/null
-
-cd Filewatcherd-Go/src/codewind
+cd $SCRIPT_LOCT/../Filewatcherd-Go/src/codewind
 go build -race 
 
 export CODEWIND_URL_ROOT="http://localhost:9090"
@@ -26,9 +24,7 @@ export MOCK_CWCTL_INSTALLER_PATH="$MOCK_CWCTL_JAR"
 ./codewind > $GO_LOG 2>&1 &
 GO_PID=$!
 
-popd > /dev/null
-
-cd Tests/FilewatcherTests
+cd $SCRIPT_LOCT/FilewatcherTests
 
 export DIR=`pwd`
 
@@ -46,6 +42,7 @@ echo GO Filewatcher log at: $GO_LOG
 
 cd $SCRIPT_LOCT
 
+cat $GO_LOG
 #./analyze_log.sh $GO_LOG
 
 exit $TEST_ERR_CODE
