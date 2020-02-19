@@ -3,8 +3,6 @@
 export SCRIPT_LOCT=$( cd $( dirname $0 ); pwd )
 cd $SCRIPT_LOCT
 
-set -euo pipefail
-
 cd $SCRIPT_LOCT/MockCwctlSync
 mvn package
 cd target
