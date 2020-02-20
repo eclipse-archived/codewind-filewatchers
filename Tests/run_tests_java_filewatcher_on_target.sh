@@ -30,7 +30,7 @@ mvn clean package
 export CODEWIND_URL_ROOT="http://localhost:9090"
 export MOCK_CWCTL_INSTALLER_PATH="$MOCK_CWCTL_JAR"
 
-java -jar target/org.eclipse.codewind.filewatchers.standalonenio-*.jar > $JAVA_LOG 2>&1 &
+java -jar target/org.eclipse.codewind.filewatchers.standalonenio-*.jar "$CODEWIND_URL_ROOT" > $JAVA_LOG 2>&1 &
 JAVA_PID=$!
 
 
