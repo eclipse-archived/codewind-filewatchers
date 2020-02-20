@@ -22,6 +22,7 @@ npm install
 npm run serve > $NODE_LOG 2>&1 &
 NODE_PID=$!
 
+echo NODE_PID Is $NODE_PID
 
 cd $SCRIPT_LOCT/FilewatcherTests
 
@@ -36,6 +37,7 @@ echo Test complete.
 
 kill $NODE_PID
 wait $NODE_PID 2>/dev/null
+killall node
 
 echo Node Filewatcher log at: $NODE_LOG 
 
