@@ -72,7 +72,7 @@ public class ChangedFileEntry {
 
 		// This is hack, but works fine here in the context of an automated test.
 		if (path.startsWith("/home") || path.toLowerCase().startsWith("/users")
-				|| path.toLowerCase().startsWith("c:\\users")) {
+				|| path.toLowerCase().startsWith("c:\\users") || path.toLowerCase().startsWith("/tmp")) {
 			return new File(path);
 		}
 
