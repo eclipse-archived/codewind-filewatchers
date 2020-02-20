@@ -103,6 +103,17 @@ public class CodewindTestApiServlet extends HttpServlet {
 		CodewindTestState.getInstance().getChangeListFromWatcher()
 				.addChangedFileEntries(new PostRequestContent(projectId, timestamp, cfeList));
 
+		int numberPrinted = 0;
+		for (int x = 0; x < cfeList.size() && numberPrinted < 50; x++) {
+			ChangedFileEntry cfe = cfeList.get(x);
+			log.out("- [" + cfe.getEventType().name() + "] " + cfe.getPath());
+			numberPrinted++;
+		}
+
+		if (numberPrinted < cfeList.size()) {
+			log.out("(...)");
+		}
+
 		response.setContentType("application/json");
 		response.setStatus(HttpServletResponse.SC_OK);
 
