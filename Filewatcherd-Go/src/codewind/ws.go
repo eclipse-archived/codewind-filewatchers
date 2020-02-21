@@ -112,10 +112,12 @@ func startWebSocketThread(wsURLType string, hostnameAndPort string, triggerRetry
 
 		utils.LogInfo("ws: Connecting to " + u.String() + uuidSuffix)
 
-		dialer := &websocket.Dialer{}
+		dialer := &websocket.Dialer{HandshakeTimeout: time.Second * 15}
 		dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 		innerC, _, err := dialer.Dial(u.String(), nil)
+
+		utils.LogInfo("ws: Post dial " + u.String() + uuidSuffix)
 
 		c = innerC
 
