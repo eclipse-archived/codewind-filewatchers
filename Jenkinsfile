@@ -48,6 +48,34 @@ spec:
             }
         }
 
+        stage('Run TypeScript filewatcher test') {
+            steps {
+                container("filewatcherd-ts-builder") {
+                    dir ("Filewatcherd-TypeScript") {
+                        sh '''#!/usr/bin/env bash
+                            
+                            # Download Java and add to path
+                            curl -LO https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u242-b08_openj9-0.18.1/OpenJDK8U-jdk_x64_linux_openj9_8u242b08_openj9-0.18.1.tar.gz
+                            tar xzvf OpenJDK8U-jdk_x64_linux_openj9_8u242b08_openj9-0.18.1.tar.gz
+                            cd jdk8u242-b08
+                            export JAVA_HOME=`pwd`
+                            cd bin/
+                            export PATH=`pwd`:$PATH
+
+
+                            # Download Maven and add to path
+                            curl -LO http://mirror.dsrg.utoronto.ca/apache/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz
+                            tar xzf apache-maven-3.6.3-bin.tar.gz
+                            cd apache-maven-3.6.3/bin
+                            export PATH=`pwd`:$PATH
+
+                        '''
+                    }
+                }
+            }
+        }
+
+
         stage('Deploy') {
             // This when clause disables PR build uploads; you may comment this out if you want your build uploaded.
             when {
