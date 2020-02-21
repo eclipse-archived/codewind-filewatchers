@@ -224,6 +224,7 @@ func startWriteEmptyMessageTickerHandler(ticker *time.Ticker, c *websocket.Conn,
 		for {
 			select {
 			case <-ticker.C:
+				utils.LogInfo("On ticker. writing to WebSocket...")
 				// On ticker (every 25 seconds), send an empty string to the socket
 				err := c.WriteMessage(websocket.TextMessage, []byte(t))
 				if err != nil {
@@ -231,6 +232,7 @@ func startWriteEmptyMessageTickerHandler(ticker *time.Ticker, c *websocket.Conn,
 					return
 				}
 			case <-tickerClosedChan:
+				utils.LogInfo("Ticket channel is closed.")
 				// If the ticker is closed, terminate the thread
 				return
 			}
