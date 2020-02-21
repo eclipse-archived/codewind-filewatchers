@@ -14,6 +14,11 @@ spec:
     tty: true
     command:
       - cat
+  - name: go
+    image: golang:1.12-stretch
+    tty: true
+    command:
+    - cat
 """
         }
     }
