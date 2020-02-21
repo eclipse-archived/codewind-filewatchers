@@ -82,14 +82,14 @@ func eventLoop(wsURLType string, hostnameAndPort string, projectList *ProjectLis
 
 		if v == Reconnect {
 			// Ignore and loop to top
-			utils.LogInfo("WebSocket thread received reconnect message.")
+			utils.LogInfo("ws: WebSocket thread received reconnect message.")
 
 			// We lost the WebSocket connection, and theoretically might have missed
 			// a watch refresh, so reacquire the latest watches.
 			httpGetStatusThread.SignalStatusRefreshNeeded()
 
 		} else if v == Terminate {
-			utils.LogInfo("WebSocket thread received terminate message.")
+			utils.LogInfo("ws: WebSocket thread received terminate message.")
 			return
 		}
 	}
@@ -102,12 +102,15 @@ func startWebSocketThread(wsURLType string, hostnameAndPort string, triggerRetry
 
 	backoff := utils.NewExponentialBackoff()
 
+	uuid := utils.GenerateUuid()
+	uuidSuffix := " (" + *uuid + ")"
+
 	var c *websocket.Conn
 
 	// Keep trying to connect on the WebSocket thread, until success
 	for {
 
-		utils.LogInfo("Connecting to " + u.String())
+		utils.LogInfo("ws: Connecting to " + u.String() + uuidSuffix)
 
 		dialer := &websocket.Dialer{}
 		dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
@@ -117,7 +120,7 @@ func startWebSocketThread(wsURLType string, hostnameAndPort string, triggerRetry
 		c = innerC
 
 		if err != nil {
-			utils.LogErrorErr("Error on connecting:", err)
+			utils.LogErrorErr("ws: Error on connecting: "+uuidSuffix, err)
 			if innerC != nil {
 				innerC.Close() // Unnecessary?
 			}
@@ -131,7 +134,7 @@ func startWebSocketThread(wsURLType string, hostnameAndPort string, triggerRetry
 		backoff.FailIncrease()
 	}
 
-	utils.LogInfo("Successfully connected to " + u.String())
+	utils.LogInfo("ws: Successfully connected to " + u.String() + uuidSuffix)
 
 	// On success, issue a GET request in case we missed anything.
 	httpGetStatusThread.SignalStatusRefreshNeeded()
@@ -139,11 +142,11 @@ func startWebSocketThread(wsURLType string, hostnameAndPort string, triggerRetry
 	ticker := time.NewTicker(25 * time.Second)
 	tickerClosedChan := make(chan *time.Ticker)
 
-	startWriteEmptyMessageTickerHandler(ticker, c, tickerClosedChan)
+	startWriteEmptyMessageTickerHandler(ticker, c, tickerClosedChan, *uuid)
 
 	c.SetCloseHandler(func(code int, text string) error {
 		triggerRetry <- Reconnect
-		utils.LogInfo("Close handler called with values: " + strconv.Itoa(code) + " " + text)
+		utils.LogInfo("ws: Close handler called with values: " + strconv.Itoa(code) + " " + text + uuidSuffix)
 
 		if c != nil {
 			c.Close()
@@ -161,7 +164,7 @@ func startWebSocketThread(wsURLType string, hostnameAndPort string, triggerRetry
 			_, message, err := c.ReadMessage()
 			if err != nil {
 				triggerRetry <- Reconnect
-				utils.LogErrorErr("Read error:", err)
+				utils.LogErrorErr("ws: Read error:"+uuidSuffix, err)
 				c.Close()
 
 				ticker.Stop()
@@ -215,7 +218,7 @@ func startWebSocketThread(wsURLType string, hostnameAndPort string, triggerRetry
 
 }
 
-func startWriteEmptyMessageTickerHandler(ticker *time.Ticker, c *websocket.Conn, tickerClosedChan chan *time.Ticker) {
+func startWriteEmptyMessageTickerHandler(ticker *time.Ticker, c *websocket.Conn, tickerClosedChan chan *time.Ticker, uuid string) {
 
 	// Start a new goroutine to send an empty json string every 25 seconds
 	go func() {
@@ -224,15 +227,15 @@ func startWriteEmptyMessageTickerHandler(ticker *time.Ticker, c *websocket.Conn,
 		for {
 			select {
 			case <-ticker.C:
-				utils.LogInfo("On ticker. writing to WebSocket...")
+				utils.LogInfo("ws: On ticker. writing to WebSocket... " + uuid)
 				// On ticker (every 25 seconds), send an empty string to the socket
 				err := c.WriteMessage(websocket.TextMessage, []byte(t))
 				if err != nil {
-					utils.LogErrorErr("Unable to write empty WebSocket message", err)
+					utils.LogErrorErr("ws: Unable to write empty WebSocket message "+uuid, err)
 					return
 				}
 			case <-tickerClosedChan:
-				utils.LogInfo("Ticket channel is closed.")
+				utils.LogInfo("ws: Ticket channel is closed. " + uuid)
 				// If the ticker is closed, terminate the thread
 				return
 			}
