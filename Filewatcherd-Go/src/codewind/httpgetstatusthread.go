@@ -158,6 +158,13 @@ func sendGet(baseURL string) (*models.WatchlistEntries, error) {
 
 	resp, err := client.Get(url)
 	if err != nil || resp == nil {
+		errMsg := "Get request failed for " + url + " , with no response code."
+		if err != nil {
+			utils.LogErrorErr(errMsg, err)
+		} else {
+			utils.LogError(errMsg)
+		}
+
 		return nil, err
 	}
 
