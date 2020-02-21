@@ -48,9 +48,9 @@ spec:
             }
         }
 
-        stage('Run TypeScript filewatcher test') {
+        stage('Run tests') {
             steps {
-                container("filewatcherd-ts-builder") {
+                container("go") {
                     dir ("Tests") {
                         sh '''#!/usr/bin/env bash
 
@@ -76,10 +76,17 @@ spec:
                             export PATH=`pwd`:$PATH
 
                             echo 
-                            echo "Run Node tests"
+                            echo "Run Go tests"
                             echo
                             cd $STEP_ROOT_PATH/
-                            ./run_tests_node_filewatcher.sh
+                            ./run_tests_go_filewatcher.sh
+
+
+                            echo 
+                            echo "Run Node tests"
+                            echo
+                            #cd $STEP_ROOT_PATH/
+                            #./run_tests_node_filewatcher.sh
 
                         '''
                     }
