@@ -18,7 +18,8 @@ cd $SCRIPT_LOCT/../Filewatcherd-TypeScript
 export CODEWIND_URL_ROOT="http://localhost:9090"
 export MOCK_CWCTL_INSTALLER_PATH="$MOCK_CWCTL_JAR"
 
-npm install
+npm ci
+npm run compile-ts
 npm run serve 2>&1 &
 # npm run serve > $NODE_LOG 2>&1 &
 NODE_PID=$!
