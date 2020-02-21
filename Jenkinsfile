@@ -53,8 +53,11 @@ spec:
                 container("filewatcherd-ts-builder") {
                     dir ("Filewatcherd-TypeScript") {
                         sh '''#!/usr/bin/env bash
-                            
-                            # Download Java and add to path
+
+                            export STEP_ROOT_PATH=`pwd`
+
+                            echo
+                            echo "Download Java and add to path"
                             curl -LO https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u242-b08_openj9-0.18.1/OpenJDK8U-jdk_x64_linux_openj9_8u242b08_openj9-0.18.1.tar.gz
                             tar xzvf OpenJDK8U-jdk_x64_linux_openj9_8u242b08_openj9-0.18.1.tar.gz
                             cd jdk8u242-b08
@@ -63,11 +66,18 @@ spec:
                             export PATH=`pwd`:$PATH
 
 
-                            # Download Maven and add to path
+                            cd $STEP_ROOT_PATH
+                            echo 
+                            echo "Download Maven and add to path"
                             curl -LO http://mirror.dsrg.utoronto.ca/apache/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz
                             tar xzf apache-maven-3.6.3-bin.tar.gz
                             cd apache-maven-3.6.3/bin
                             export PATH=`pwd`:$PATH
+
+                            cd $STEP_ROOT_PATH
+                            pwd
+                            ls -l
+
 
                         '''
                     }
