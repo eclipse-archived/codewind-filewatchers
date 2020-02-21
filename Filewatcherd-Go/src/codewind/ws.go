@@ -141,21 +141,30 @@ func startWebSocketThread(wsURLType string, hostnameAndPort string, triggerRetry
 	// On success, issue a GET request in case we missed anything.
 	httpGetStatusThread.SignalStatusRefreshNeeded()
 
+	utils.LogInfo("ws: post signal " + uuidSuffix)
+
 	ticker := time.NewTicker(25 * time.Second)
 	tickerClosedChan := make(chan *time.Ticker)
 
 	startWriteEmptyMessageTickerHandler(ticker, c, tickerClosedChan, *uuid)
 
 	c.SetCloseHandler(func(code int, text string) error {
+
+		utils.LogInfo("ws: set close handler " + uuidSuffix)
 		triggerRetry <- Reconnect
 		utils.LogInfo("ws: Close handler called with values: " + strconv.Itoa(code) + " " + text + uuidSuffix)
 
 		if c != nil {
+			utils.LogInfo("ws: closing " + uuidSuffix)
 			c.Close()
+			utils.LogInfo("ws: post closing " + uuidSuffix)
 		}
 
+		utils.LogInfo("ws: stopping " + uuidSuffix)
 		ticker.Stop()
+		utils.LogInfo("ws: post stopping " + uuidSuffix)
 		tickerClosedChan <- ticker
+		utils.LogInfo("ws: sch done " + uuidSuffix)
 
 		return nil
 	})
