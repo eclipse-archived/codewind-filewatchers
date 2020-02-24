@@ -14,6 +14,13 @@ spec:
     tty: true
     command:
       - cat
+    resources:
+      limits:
+        memory: "2Gi"
+        cpu: "1"
+      requests:
+        memory: "2Gi"
+        cpu: "1"      
   - name: go
     image: golang:1.12-stretch
     tty: true
@@ -21,10 +28,10 @@ spec:
     - cat
     resources:
       limits:
-        memory: "3Gi"
+        memory: "2Gi"
         cpu: "1"
       requests:
-        memory: "3Gi"
+        memory: "2Gi"
         cpu: "1"    
 """
         }
