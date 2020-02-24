@@ -98,6 +98,47 @@ spec:
                             # . $NVM_DIR/nvm.sh
                             # nvm i 10
 
+                            # cd $STEP_ROOT_PATH/
+                            # ./run_tests_node_filewatcher.sh
+
+                        '''
+                    }
+                }
+                container("filewatcherd-ts-builder") {
+                    dir ("Tests") {
+                        sh '''#!/usr/bin/env bash
+
+                            echo
+                            echo "Download Java and add to path"
+                            echo
+                            export STEP_ROOT_PATH=`pwd`
+                            curl -LO https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u242-b08_openj9-0.18.1/OpenJDK8U-jdk_x64_linux_openj9_8u242b08_openj9-0.18.1.tar.gz
+                            tar xzf OpenJDK8U-jdk_x64_linux_openj9_8u242b08_openj9-0.18.1.tar.gz
+                            cd jdk8u242-b08
+                            export JAVA_HOME=`pwd`
+                            cd bin/
+                            export PATH=`pwd`:$PATH
+
+                            echo 
+                            echo "Download Maven and add to path"
+                            echo
+                            cd $STEP_ROOT_PATH
+                            curl -LO http://mirror.dsrg.utoronto.ca/apache/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz
+                            tar xzf apache-maven-3.6.3-bin.tar.gz
+                            cd apache-maven-3.6.3/bin
+                            export PATH=`pwd`:$PATH
+
+                            echo 
+                            echo "Run Node tests"
+                            echo
+
+                            # Install nvm to easily set version of node to use
+                            # curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
+                            # export NVM_DIR="$HOME/.nvm" 
+                            # set -a
+                            # . $NVM_DIR/nvm.sh
+                            # nvm i 10
+
                             cd $STEP_ROOT_PATH/
                             ./run_tests_node_filewatcher.sh
 

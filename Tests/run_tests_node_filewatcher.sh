@@ -6,19 +6,19 @@ cd $SCRIPT_LOCT
 
 
 
-cd ~
+# cd ~
 
 # Install nvm to easily set version of node to use
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
-export NVM_DIR="$HOME/.nvm" 
-set -a
-echo pre1
-. $NVM_DIR/nvm.sh
-echo pre2
-npm config delete prefix
-nvm i 10
+# curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
+# export NVM_DIR="$HOME/.nvm" 
+# set -a
+# echo pre1
+# . $NVM_DIR/nvm.sh
+# echo pre2
+# npm config delete prefix
+# nvm i 10
 
-echo post
+# echo post
 
 
 
