@@ -102,13 +102,16 @@ func startWebSocketThread(wsURLType string, hostnameAndPort string, triggerRetry
 
 	backoff := utils.NewExponentialBackoff()
 
-	uuid := utils.GenerateUuid()
-	uuidSuffix := " (" + *uuid + ")"
+	var uuid string
+	var uuidSuffix string
 
 	var c *websocket.Conn
 
 	// Keep trying to connect on the WebSocket thread, until success
 	for {
+
+		uuid = *utils.GenerateUuid()
+		uuidSuffix = " (" + uuid + ")"
 
 		utils.LogInfo("ws: Connecting to " + u.String() + uuidSuffix)
 
@@ -146,7 +149,10 @@ func startWebSocketThread(wsURLType string, hostnameAndPort string, triggerRetry
 	ticker := time.NewTicker(25 * time.Second)
 	tickerClosedChan := make(chan *time.Ticker)
 
-	startWriteEmptyMessageTickerHandler(ticker, c, tickerClosedChan, *uuid)
+	utils.LogInfo("ws: post make " + uuidSuffix)
+	startWriteEmptyMessageTickerHandler(ticker, c, tickerClosedChan, uuid)
+
+	utils.LogInfo("ws: post start " + uuidSuffix)
 
 	c.SetCloseHandler(func(code int, text string) error {
 
@@ -168,6 +174,8 @@ func startWebSocketThread(wsURLType string, hostnameAndPort string, triggerRetry
 
 		return nil
 	})
+
+	utils.LogInfo("ws: post close" + uuidSuffix)
 
 	// Start a new listening thread, which informs us on failure
 	go func() {
@@ -236,6 +244,9 @@ func startWriteEmptyMessageTickerHandler(ticker *time.Ticker, c *websocket.Conn,
 		t := "{}"
 
 		for {
+
+			utils.LogInfo("ws: inside for lood... " + uuid)
+
 			select {
 			case <-ticker.C:
 				utils.LogInfo("ws: On ticker. writing to WebSocket... " + uuid)
@@ -253,5 +264,7 @@ func startWriteEmptyMessageTickerHandler(ticker *time.Ticker, c *websocket.Conn,
 
 		}
 	}()
+
+	utils.LogInfo("ws: post startWrite... " + uuid)
 
 }

@@ -50,6 +50,7 @@ type HttpGetStatusThread struct {
 func (hg *HttpGetStatusThread) SignalStatusRefreshNeeded() {
 	utils.LogDebug("SignalStatusRefreshNeeded called.")
 	hg.refreshStatusChan <- nil
+	utils.LogDebug("post SignalStatusRefreshNeeded called.")
 }
 
 func NewHttpGetStatusThread(baseURL string, projectList *ProjectList) (*HttpGetStatusThread, error) {
