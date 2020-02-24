@@ -51,7 +51,7 @@ func main() {
 
 	projectList.SetWatchService(watchService)
 
-	httpGetStatusThread, err := NewHttpGetStatusThread(baseURL, projectList)
+	httpGetStatusThread, err := NewHTTPGetStatusThread(baseURL, projectList)
 
 	if err != nil {
 		utils.LogSevereErr("Unable to create HTTP GET status thread", err)

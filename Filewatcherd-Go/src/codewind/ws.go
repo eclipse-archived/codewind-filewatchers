@@ -44,7 +44,7 @@ const (
 	Terminate
 )
 
-func StartWSConnectionManager(baseURL string, projectList *ProjectList, httpGetStatusThread *HttpGetStatusThread) error {
+func StartWSConnectionManager(baseURL string, projectList *ProjectList, httpGetStatusThread *HTTPGetStatusThread) error {
 	baseURL = utils.StripTrailingForwardSlash(baseURL)
 
 	if !utils.IsValidURLBase(baseURL) {
@@ -68,7 +68,7 @@ func StartWSConnectionManager(baseURL string, projectList *ProjectList, httpGetS
 	return nil
 }
 
-func eventLoop(wsURLType string, hostnameAndPort string, projectList *ProjectList, httpGetStatusThread *HttpGetStatusThread) {
+func eventLoop(wsURLType string, hostnameAndPort string, projectList *ProjectList, httpGetStatusThread *HTTPGetStatusThread) {
 
 	for {
 
@@ -96,7 +96,7 @@ func eventLoop(wsURLType string, hostnameAndPort string, projectList *ProjectLis
 
 }
 
-func startWebSocketThread(wsURLType string, hostnameAndPort string, triggerRetry chan ReconnectMessage, projectList *ProjectList, httpGetStatusThread *HttpGetStatusThread) {
+func startWebSocketThread(wsURLType string, hostnameAndPort string, triggerRetry chan ReconnectMessage, projectList *ProjectList, httpGetStatusThread *HTTPGetStatusThread) {
 
 	u := url.URL{Scheme: wsURLType, Host: hostnameAndPort, Path: "/websockets/file-changes/v1"}
 
