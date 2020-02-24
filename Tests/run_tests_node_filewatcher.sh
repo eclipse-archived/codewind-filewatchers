@@ -1,7 +1,23 @@
 #!/bin/bash
 
+
 export SCRIPT_LOCT=$( cd $( dirname $0 ); pwd )
 cd $SCRIPT_LOCT
+
+
+
+cd ~
+
+# Install nvm to easily set version of node to use
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
+export NVM_DIR="$HOME/.nvm" 
+set -a
+. $NVM_DIR/nvm.sh
+nvm i 10
+
+
+
+
 
 cd $SCRIPT_LOCT/MockCwctlSync
 mvn package

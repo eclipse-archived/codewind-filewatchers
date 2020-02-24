@@ -92,13 +92,11 @@ spec:
                             echo
 
                             # Install nvm to easily set version of node to use
-                            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
-                            set -a
-                            export NVM_DIR="$HOME/.nvm" 
-                            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm                            
+                            # curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
+                            # export NVM_DIR="$HOME/.nvm" 
+                            # set -a
                             # . $NVM_DIR/nvm.sh
-                            
-                            nvm i 10
+                            # nvm i 10
 
                             cd $STEP_ROOT_PATH/
                             ./run_tests_node_filewatcher.sh
