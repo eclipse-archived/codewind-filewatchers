@@ -11,7 +11,7 @@ MOCK_CWCTL_JAR=`pwd`/`ls MockCwctlSync-*.jar`
 
 echo "Starting Node filewatcher ---------------------------------------------------------"
 
-NODE_LOG=`mktemp`
+# NODE_LOG=`mktemp`
 
 cd $SCRIPT_LOCT/../Filewatcherd-TypeScript
 
@@ -41,7 +41,7 @@ kill $NODE_PID
 wait $NODE_PID 2>/dev/null
 killall node
 
-echo Node Filewatcher log at: $NODE_LOG 
+# echo Node Filewatcher log at: $NODE_LOG 
 
 cd $SCRIPT_LOCT
 
