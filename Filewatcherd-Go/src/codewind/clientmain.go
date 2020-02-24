@@ -42,6 +42,10 @@ func main() {
 		}
 	}
 
+	if value, ok := os.LookupEnv("MOCK_CWCTL_INSTALLER_PATH"); ok {
+		installerPath = value
+	}
+
 	baseURL = utils.StripTrailingForwardSlash(baseURL)
 
 	httpPostOutputQueue, err := NewHttpPostOutputQueue(baseURL)
