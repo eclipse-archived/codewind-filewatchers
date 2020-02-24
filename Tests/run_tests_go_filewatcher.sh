@@ -19,7 +19,9 @@ go build -race
 export CODEWIND_URL_ROOT="http://localhost:9090"
 export MOCK_CWCTL_INSTALLER_PATH="$MOCK_CWCTL_JAR"
 
-./codewind &
+./run-codewind.sh &
+
+# ./codewind &
 
 #./codewind 2>&1 | tee -a $GO_LOG &
 #./codewind > $GO_LOG 2>&1 &
