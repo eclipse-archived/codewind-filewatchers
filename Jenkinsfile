@@ -21,10 +21,10 @@ spec:
     - cat
     resources:
       limits:
-        memory: "4Gi"
+        memory: "3Gi"
         cpu: "1"
       requests:
-        memory: "4Gi"
+        memory: "3Gi"
         cpu: "1"    
 """
         }
@@ -92,13 +92,13 @@ spec:
                             echo
 
                             # Install nvm to easily set version of node to use
-                            # curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
-                            # export NVM_DIR="$HOME/.nvm" 
-                            #. $NVM_DIR/nvm.sh
-                            # nvm i 10
+                            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
+                            export NVM_DIR="$HOME/.nvm" 
+                            . $NVM_DIR/nvm.sh
+                            nvm i 10
 
-                            # cd $STEP_ROOT_PATH/
-                            # ./run_tests_node_filewatcher.sh
+                            cd $STEP_ROOT_PATH/
+                            ./run_tests_node_filewatcher.sh
 
                         '''
                     }

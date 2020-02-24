@@ -19,12 +19,11 @@ go build -race
 export CODEWIND_URL_ROOT="http://localhost:9090"
 export MOCK_CWCTL_INSTALLER_PATH="$MOCK_CWCTL_JAR"
 
-./run-codewind.sh &
+# ./run-codewind.sh &
 
-# ./codewind &
-
-#./codewind 2>&1 | tee -a $GO_LOG &
-#./codewind > $GO_LOG 2>&1 &
+# ./codewind 2>&1 | tee -a $GO_LOG &
+./codewind &
+# ./codewind > $GO_LOG 2>&1 &
 GO_PID=$!
 
 cd $SCRIPT_LOCT/FilewatcherTests
@@ -45,8 +44,10 @@ echo GO Filewatcher log at: $GO_LOG
 
 cd $SCRIPT_LOCT
 
-cat $GO_LOG
+# cat $GO_LOG
 #./analyze_log.sh $GO_LOG
+
+ps -ef
 
 exit $TEST_ERR_CODE
 
