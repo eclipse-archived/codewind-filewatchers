@@ -85,11 +85,11 @@ spec:
                             echo "Run Go tests"
                             echo
                             cd $STEP_ROOT_PATH/
-                            # ./run_tests_go_filewatcher.sh
+                            ./run_tests_go_filewatcher.sh
 
-                            echo 
-                            echo "Run Node tests"
-                            echo
+                            # echo 
+                            # echo "Run Node tests"
+                            # echo
 
                             # Install nvm to easily set version of node to use
                             # curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
