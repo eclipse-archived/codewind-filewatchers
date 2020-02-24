@@ -93,9 +93,11 @@ spec:
 
                             # Install nvm to easily set version of node to use
                             curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
-                            export NVM_DIR="$HOME/.nvm" 
                             set -a
-                            . $NVM_DIR/nvm.sh
+                            export NVM_DIR="$HOME/.nvm" 
+                            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm                            
+                            # . $NVM_DIR/nvm.sh
+                            
                             nvm i 10
 
                             cd $STEP_ROOT_PATH/
