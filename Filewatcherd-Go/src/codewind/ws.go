@@ -44,7 +44,7 @@ const (
 	Terminate
 )
 
-func StartWSConnectionManager(baseURL string, projectList *ProjectList, httpGetStatusThread *HTTPGetStatusThread) error {
+func StartWSConnectionManager(baseURL string, projectList *ProjectList, httpGetStatusThread *HttpGetStatusThread) error {
 	baseURL = utils.StripTrailingForwardSlash(baseURL)
 
 	if !utils.IsValidURLBase(baseURL) {
@@ -68,7 +68,7 @@ func StartWSConnectionManager(baseURL string, projectList *ProjectList, httpGetS
 	return nil
 }
 
-func eventLoop(wsURLType string, hostnameAndPort string, projectList *ProjectList, httpGetStatusThread *HTTPGetStatusThread) {
+func eventLoop(wsURLType string, hostnameAndPort string, projectList *ProjectList, httpGetStatusThread *HttpGetStatusThread) {
 
 	for {
 
@@ -82,50 +82,42 @@ func eventLoop(wsURLType string, hostnameAndPort string, projectList *ProjectLis
 
 		if v == Reconnect {
 			// Ignore and loop to top
-			utils.LogInfo("ws: WebSocket thread received reconnect message.")
+			utils.LogInfo("WebSocket thread received reconnect message.")
 
 			// We lost the WebSocket connection, and theoretically might have missed
 			// a watch refresh, so reacquire the latest watches.
 			httpGetStatusThread.SignalStatusRefreshNeeded()
 
 		} else if v == Terminate {
-			utils.LogInfo("ws: WebSocket thread received terminate message.")
+			utils.LogInfo("WebSocket thread received terminate message.")
 			return
 		}
 	}
 
 }
 
-func startWebSocketThread(wsURLType string, hostnameAndPort string, triggerRetry chan ReconnectMessage, projectList *ProjectList, httpGetStatusThread *HTTPGetStatusThread) {
+func startWebSocketThread(wsURLType string, hostnameAndPort string, triggerRetry chan ReconnectMessage, projectList *ProjectList, httpGetStatusThread *HttpGetStatusThread) {
 
 	u := url.URL{Scheme: wsURLType, Host: hostnameAndPort, Path: "/websockets/file-changes/v1"}
 
 	backoff := utils.NewExponentialBackoff()
-
-	var uuid string
-	var uuidSuffix string
 
 	var c *websocket.Conn
 
 	// Keep trying to connect on the WebSocket thread, until success
 	for {
 
-		uuid = *utils.GenerateUuid()
-		uuidSuffix = " (" + uuid + ")"
+		utils.LogInfo("Connecting to " + u.String())
 
-		utils.LogInfo("ws: Connecting to " + u.String() + uuidSuffix)
-
-		dialer := &websocket.Dialer{HandshakeTimeout: time.Second * 15}
+		dialer := &websocket.Dialer{}
 		dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 		innerC, _, err := dialer.Dial(u.String(), nil)
 
-		utils.LogInfo("ws: Post dial " + u.String() + uuidSuffix)
-
 		c = innerC
 
 		if err != nil {
-			utils.LogErrorErr("ws: Error on connecting: "+uuidSuffix, err)
+			utils.LogErrorErr("Error on connecting:", err)
 			if innerC != nil {
 				innerC.Close() // Unnecessary?
 			}
@@ -139,43 +131,29 @@ func startWebSocketThread(wsURLType string, hostnameAndPort string, triggerRetry
 		backoff.FailIncrease()
 	}
 
-	utils.LogInfo("ws: Successfully connected to " + u.String() + uuidSuffix)
+	utils.LogInfo("Successfully connected to " + u.String())
 
 	// On success, issue a GET request in case we missed anything.
 	httpGetStatusThread.SignalStatusRefreshNeeded()
 
-	utils.LogInfo("ws: post signal " + uuidSuffix)
-
 	ticker := time.NewTicker(25 * time.Second)
 	tickerClosedChan := make(chan *time.Ticker)
 
-	utils.LogInfo("ws: post make " + uuidSuffix)
-	startWriteEmptyMessageTickerHandler(ticker, c, tickerClosedChan, uuid)
-
-	utils.LogInfo("ws: post start " + uuidSuffix)
+	startWriteEmptyMessageTickerHandler(ticker, c, tickerClosedChan)
 
 	c.SetCloseHandler(func(code int, text string) error {
-
-		utils.LogInfo("ws: set close handler " + uuidSuffix)
 		triggerRetry <- Reconnect
-		utils.LogInfo("ws: Close handler called with values: " + strconv.Itoa(code) + " " + text + uuidSuffix)
+		utils.LogInfo("Close handler called with values: " + strconv.Itoa(code) + " " + text)
 
 		if c != nil {
-			utils.LogInfo("ws: closing " + uuidSuffix)
 			c.Close()
-			utils.LogInfo("ws: post closing " + uuidSuffix)
 		}
 
-		utils.LogInfo("ws: stopping " + uuidSuffix)
 		ticker.Stop()
-		utils.LogInfo("ws: post stopping " + uuidSuffix)
 		tickerClosedChan <- ticker
-		utils.LogInfo("ws: sch done " + uuidSuffix)
 
 		return nil
 	})
-
-	utils.LogInfo("ws: post close" + uuidSuffix)
 
 	// Start a new listening thread, which informs us on failure
 	go func() {
@@ -183,7 +161,7 @@ func startWebSocketThread(wsURLType string, hostnameAndPort string, triggerRetry
 			_, message, err := c.ReadMessage()
 			if err != nil {
 				triggerRetry <- Reconnect
-				utils.LogErrorErr("ws: Read error:"+uuidSuffix, err)
+				utils.LogErrorErr("Read error:", err)
 				c.Close()
 
 				ticker.Stop()
@@ -237,36 +215,27 @@ func startWebSocketThread(wsURLType string, hostnameAndPort string, triggerRetry
 
 }
 
-func startWriteEmptyMessageTickerHandler(ticker *time.Ticker, c *websocket.Conn, tickerClosedChan chan *time.Ticker, uuid string) {
+func startWriteEmptyMessageTickerHandler(ticker *time.Ticker, c *websocket.Conn, tickerClosedChan chan *time.Ticker) {
 
 	// Start a new goroutine to send an empty json string every 25 seconds
 	go func() {
 		t := "{}"
 
 		for {
-
-			utils.LogInfo("ws: inside for loop... " + uuid)
-
 			select {
 			case <-ticker.C:
-				utils.LogInfo("ws: On ticker. writing to WebSocket... " + uuid)
 				// On ticker (every 25 seconds), send an empty string to the socket
 				err := c.WriteMessage(websocket.TextMessage, []byte(t))
 				if err != nil {
-					utils.LogErrorErr("ws: Unable to write empty WebSocket message "+uuid, err)
-					c.Close()
-					utils.LogErrorErr("ws: Unable to write empty WebSocket message - post close "+uuid, err)
+					utils.LogErrorErr("Unable to write empty WebSocket message", err)
 					return
 				}
 			case <-tickerClosedChan:
-				utils.LogInfo("ws: Ticket channel is closed. " + uuid)
 				// If the ticker is closed, terminate the thread
 				return
 			}
 
 		}
 	}()
-
-	utils.LogInfo("ws: post startWrite... " + uuid)
 
 }

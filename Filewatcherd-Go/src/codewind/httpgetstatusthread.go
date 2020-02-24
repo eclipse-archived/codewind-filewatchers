@@ -39,14 +39,15 @@ import (
  * updates received) as output.
  *
  */
-type HTTPGetStatusThread struct {
+type HttpGetStatusThread struct {
 	refreshStatusChan chan interface{}
 	baseURL           string
 }
 
-// SignalStatusRefreshNeeded is called by other files whenever a new GET request should be sent to the server (for example, if
-// the websocket connecion failed.)
-func (hg *HTTPGetStatusThread) SignalStatusRefreshNeeded() {
+/**
+ * This function is called by other files whenever a new GET request should be sent to the server (for example, if
+ * the websocket connecion failed.) */
+func (hg *HttpGetStatusThread) SignalStatusRefreshNeeded() {
 	go func() {
 		utils.LogDebug("SignalStatusRefreshNeeded called.")
 		hg.refreshStatusChan <- nil
@@ -54,8 +55,7 @@ func (hg *HTTPGetStatusThread) SignalStatusRefreshNeeded() {
 	}()
 }
 
-// NewHTTPGetStatusThread ...
-func NewHTTPGetStatusThread(baseURL string, projectList *ProjectList) (*HTTPGetStatusThread, error) {
+func NewHttpGetStatusThread(baseURL string, projectList *ProjectList) (*HttpGetStatusThread, error) {
 
 	baseURL = utils.StripTrailingForwardSlash(baseURL)
 
@@ -65,7 +65,7 @@ func NewHTTPGetStatusThread(baseURL string, projectList *ProjectList) (*HTTPGetS
 
 	reconnectNeeded := make(chan interface{})
 
-	result := &HTTPGetStatusThread{
+	result := &HttpGetStatusThread{
 		reconnectNeeded,
 		baseURL,
 	}
@@ -88,7 +88,7 @@ func NewHTTPGetStatusThread(baseURL string, projectList *ProjectList) (*HTTPGetS
 
 }
 
-func runGetStatusThread(data *HTTPGetStatusThread, projectList *ProjectList) {
+func runGetStatusThread(data *HttpGetStatusThread, projectList *ProjectList) {
 	utils.LogInfo("Http GET status thread started.")
 
 	backoff := utils.NewExponentialBackoff()

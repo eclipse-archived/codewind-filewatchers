@@ -21,13 +21,6 @@ import (
  * The application takes one optional argument, which is the URL of the Codewind server. */
 func main() {
 
-	go func() {
-		for {
-			time.Sleep(time.Second * 30)
-			utils.LogInfo("Stil alive.")
-		}
-	}()
-
 	// Default URL if no args
 	baseURL := "http://localhost:9090"
 
@@ -62,7 +55,7 @@ func main() {
 
 	projectList.SetWatchService(watchService)
 
-	httpGetStatusThread, err := NewHTTPGetStatusThread(baseURL, projectList)
+	httpGetStatusThread, err := NewHttpGetStatusThread(baseURL, projectList)
 
 	if err != nil {
 		utils.LogSevereErr("Unable to create HTTP GET status thread", err)
