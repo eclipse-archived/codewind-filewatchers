@@ -68,6 +68,8 @@ spec:
                     dir ("Tests") {
                         sh '''#!/usr/bin/env bash
 
+                            set -euo pipefail
+
                             echo
                             echo "Download Java and add to path"
                             echo
@@ -94,26 +96,14 @@ spec:
                             cd $STEP_ROOT_PATH/
                             ./run_tests_go_filewatcher.sh
 
-                            # echo 
-                            # echo "Run Node tests"
-                            # echo
-
-                            # Install nvm to easily set version of node to use
-                            # curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
-                            # export NVM_DIR="$HOME/.nvm" 
-                            # set -a
-                            # . $NVM_DIR/nvm.sh
-                            # nvm i 10
-
-                            # cd $STEP_ROOT_PATH/
-                            # ./run_tests_node_filewatcher.sh
-
                         '''
                     }
                 }
                 container("filewatcherd-ts-builder") {
                     dir ("Tests") {
                         sh '''#!/usr/bin/env bash
+
+                            set -euo pipefail
 
                             echo
                             echo "Download Java and add to path"
@@ -138,13 +128,6 @@ spec:
                             echo 
                             echo "Run Node tests"
                             echo
-
-                            # Install nvm to easily set version of node to use
-                            # curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
-                            # export NVM_DIR="$HOME/.nvm" 
-                            # set -a
-                            # . $NVM_DIR/nvm.sh
-                            # nvm i 10
 
                             cd $STEP_ROOT_PATH/
                             ./run_tests_node_filewatcher.sh

@@ -47,7 +47,5 @@ cd $SCRIPT_LOCT
 # cat $GO_LOG
 #./analyze_log.sh $GO_LOG
 
-ps -ef
-
 exit $TEST_ERR_CODE
 
