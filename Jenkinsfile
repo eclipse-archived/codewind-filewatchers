@@ -19,6 +19,13 @@ spec:
     tty: true
     command:
     - cat
+    resources:
+      limits:
+        memory: "4Gi"
+        cpu: "1"
+      requests:
+        memory: "4Gi"
+        cpu: "1"    
 """
         }
     }
@@ -65,7 +72,6 @@ spec:
                             cd bin/
                             export PATH=`pwd`:$PATH
 
-
                             echo 
                             echo "Download Maven and add to path"
                             echo
@@ -81,12 +87,18 @@ spec:
                             cd $STEP_ROOT_PATH/
                             ./run_tests_go_filewatcher.sh
 
-
                             echo 
                             echo "Run Node tests"
                             echo
-                            #cd $STEP_ROOT_PATH/
-                            #./run_tests_node_filewatcher.sh
+
+                            # Install nvm to easily set version of node to use
+                            # curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
+                            # export NVM_DIR="$HOME/.nvm" 
+                            #. $NVM_DIR/nvm.sh
+                            # nvm i 10
+
+                            # cd $STEP_ROOT_PATH/
+                            # ./run_tests_node_filewatcher.sh
 
                         '''
                     }
