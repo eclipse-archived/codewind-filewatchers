@@ -254,6 +254,7 @@ func startWriteEmptyMessageTickerHandler(ticker *time.Ticker, c *websocket.Conn,
 				err := c.WriteMessage(websocket.TextMessage, []byte(t))
 				if err != nil {
 					utils.LogErrorErr("ws: Unable to write empty WebSocket message "+uuid, err)
+					c.Close()
 					return
 				}
 			case <-tickerClosedChan:
