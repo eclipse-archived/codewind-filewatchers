@@ -21,6 +21,13 @@ import (
  * The application takes one optional argument, which is the URL of the Codewind server. */
 func main() {
 
+	go func() {
+		for {
+			time.Sleep(time.Second * 30)
+			utils.LogInfo("Stil alive.")
+		}
+	}()
+
 	// Default URL if no args
 	baseURL := "http://localhost:9090"
 

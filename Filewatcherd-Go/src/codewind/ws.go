@@ -245,7 +245,7 @@ func startWriteEmptyMessageTickerHandler(ticker *time.Ticker, c *websocket.Conn,
 
 		for {
 
-			utils.LogInfo("ws: inside for lood... " + uuid)
+			utils.LogInfo("ws: inside for loop... " + uuid)
 
 			select {
 			case <-ticker.C:
@@ -255,6 +255,7 @@ func startWriteEmptyMessageTickerHandler(ticker *time.Ticker, c *websocket.Conn,
 				if err != nil {
 					utils.LogErrorErr("ws: Unable to write empty WebSocket message "+uuid, err)
 					c.Close()
+					utils.LogErrorErr("ws: Unable to write empty WebSocket message - post close "+uuid, err)
 					return
 				}
 			case <-tickerClosedChan:
