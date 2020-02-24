@@ -85,7 +85,7 @@ spec:
                             echo "Run Go tests"
                             echo
                             cd $STEP_ROOT_PATH/
-                            ./run_tests_go_filewatcher.sh
+                            # ./run_tests_go_filewatcher.sh
 
                             echo 
                             echo "Run Node tests"
@@ -94,6 +94,7 @@ spec:
                             # Install nvm to easily set version of node to use
                             curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
                             export NVM_DIR="$HOME/.nvm" 
+                            set -a
                             . $NVM_DIR/nvm.sh
                             nvm i 10
 
