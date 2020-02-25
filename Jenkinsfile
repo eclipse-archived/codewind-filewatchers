@@ -14,6 +14,25 @@ spec:
     tty: true
     command:
       - cat
+    resources:
+      limits:
+        memory: "2Gi"
+        cpu: "1"
+      requests:
+        memory: "2Gi"
+        cpu: "1"      
+  - name: go
+    image: golang:1.12-stretch
+    tty: true
+    command:
+    - cat
+    resources:
+      limits:
+        memory: "2Gi"
+        cpu: "1"
+      requests:
+        memory: "2Gi"
+        cpu: "1"    
 """
         }
     }
@@ -43,6 +62,83 @@ spec:
             }
         }
 
+        stage('Run tests') {
+            steps {
+                container("go") {
+                    dir ("Tests") {
+                        sh '''#!/usr/bin/env bash
+
+                            set -euo pipefail
+
+                            echo
+                            echo "Download Java and add to path"
+                            echo
+                            export STEP_ROOT_PATH=`pwd`
+                            curl -LO https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u242-b08_openj9-0.18.1/OpenJDK8U-jdk_x64_linux_openj9_8u242b08_openj9-0.18.1.tar.gz
+                            tar xzf OpenJDK8U-jdk_x64_linux_openj9_8u242b08_openj9-0.18.1.tar.gz
+                            cd jdk8u242-b08
+                            export JAVA_HOME=`pwd`
+                            cd bin/
+                            export PATH=`pwd`:$PATH
+
+                            echo 
+                            echo "Download Maven and add to path"
+                            echo
+                            cd $STEP_ROOT_PATH
+                            curl -LO http://mirror.dsrg.utoronto.ca/apache/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz
+                            tar xzf apache-maven-3.6.3-bin.tar.gz
+                            cd apache-maven-3.6.3/bin
+                            export PATH=`pwd`:$PATH
+
+                            echo 
+                            echo "Run Go tests"
+                            echo
+                            cd $STEP_ROOT_PATH/
+                            ./run_tests_go_filewatcher.sh
+
+                        '''
+                    }
+                }
+                container("filewatcherd-ts-builder") {
+                    dir ("Tests") {
+                        sh '''#!/usr/bin/env bash
+
+                            set -euo pipefail
+
+                            echo
+                            echo "Download Java and add to path"
+                            echo
+                            export STEP_ROOT_PATH=`pwd`
+                            curl -LO https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u242-b08_openj9-0.18.1/OpenJDK8U-jdk_x64_linux_openj9_8u242b08_openj9-0.18.1.tar.gz
+                            tar xzf OpenJDK8U-jdk_x64_linux_openj9_8u242b08_openj9-0.18.1.tar.gz
+                            cd jdk8u242-b08
+                            export JAVA_HOME=`pwd`
+                            cd bin/
+                            export PATH=`pwd`:$PATH
+
+                            echo 
+                            echo "Download Maven and add to path"
+                            echo
+                            cd $STEP_ROOT_PATH
+                            curl -LO http://mirror.dsrg.utoronto.ca/apache/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz
+                            tar xzf apache-maven-3.6.3-bin.tar.gz
+                            cd apache-maven-3.6.3/bin
+                            export PATH=`pwd`:$PATH
+
+                            echo 
+                            echo "Run Node tests"
+                            echo
+
+                            cd $STEP_ROOT_PATH/
+                            ./run_tests_node_filewatcher.sh
+
+                        '''
+                    }
+                }
+            }
+        }
+
+
         stage('Deploy') {
             // This when clause disables PR build uploads; you may comment this out if you want your build uploaded.
             when {
@@ -54,7 +150,7 @@ spec:
 
             options {
                 skipDefaultCheckout()
-                timeout(time: 30, unit: 'MINUTES') 
+                timeout(time: 120, unit: 'MINUTES') 
                 retry(3) 
             }
 

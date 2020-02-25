@@ -95,6 +95,9 @@ public class ServerControl {
 			throw new RuntimeException(e);
 		}
 
+		connectionState.dispose();
+		server.destroy();
+
 		connectionState = null;
 		server = null;
 	}

@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (c) 2019 IBM Corporation and others.
+* Copyright (c) 2019, 2020 IBM Corporation and others.
 * All rights reserved. This program and the accompanying materials
 * are made available under the terms of the Eclipse Public License v2.0
 * which accompanies this distribution, and is available at
@@ -48,8 +48,11 @@ type HttpGetStatusThread struct {
  * This function is called by other files whenever a new GET request should be sent to the server (for example, if
  * the websocket connecion failed.) */
 func (hg *HttpGetStatusThread) SignalStatusRefreshNeeded() {
-	utils.LogDebug("SignalStatusRefreshNeeded called.")
-	hg.refreshStatusChan <- nil
+	go func() {
+		utils.LogDebug("SignalStatusRefreshNeeded called.")
+		hg.refreshStatusChan <- nil
+		utils.LogDebug("post SignalStatusRefreshNeeded called.")
+	}()
 }
 
 func NewHttpGetStatusThread(baseURL string, projectList *ProjectList) (*HttpGetStatusThread, error) {
@@ -158,6 +161,13 @@ func sendGet(baseURL string) (*models.WatchlistEntries, error) {
 
 	resp, err := client.Get(url)
 	if err != nil || resp == nil {
+		errMsg := "Get request failed for " + url + " , with no response code."
+		if err != nil {
+			utils.LogErrorErr(errMsg, err)
+		} else {
+			utils.LogError(errMsg)
+		}
+
 		return nil, err
 	}
 

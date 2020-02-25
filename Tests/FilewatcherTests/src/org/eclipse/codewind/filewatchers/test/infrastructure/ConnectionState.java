@@ -14,6 +14,7 @@ package org.eclipse.codewind.filewatchers.test.infrastructure;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.codewind.filewatchers.test.json.DebugMessageOverWebSocketJson;
@@ -165,12 +166,21 @@ public class ConnectionState {
 	}
 
 	public void waitForAtLeastOneSession() {
+		long nextPrintTimeInNanos = 0;
 		synchronized (lock) {
 			while (connectedWebSockets_synch_lock.size() == 0) {
 				try {
 					lock.wait(100);
 				} catch (InterruptedException e) {
 					throw new RuntimeException(e);
+				}
+
+				if (System.nanoTime() > nextPrintTimeInNanos) {
+					if (nextPrintTimeInNanos != 0) {
+						System.out.println(
+								"* Waiting for at least one session: " + connectedWebSockets_synch_lock.size());
+					}
+					nextPrintTimeInNanos = System.nanoTime() + TimeUnit.NANOSECONDS.convert(30, TimeUnit.SECONDS);
 				}
 			}
 
