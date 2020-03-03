@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (c) 2019 IBM Corporation and others.
+* Copyright (c) 2019, 2020 IBM Corporation and others.
 * All rights reserved. This program and the accompanying materials
 * are made available under the terms of the Eclipse Public License v2.0
 * which accompanies this distribution, and is available at
@@ -25,31 +25,28 @@ import (
 	"time"
 )
 
-/**
- * When file/directory change events occur in quick succession (within
- * milliseconds of each other), it tends to imply that they are related. For
- * example, if you were refactoring Java code, that refactoring operation might
- * touch a bunch of source files at once. This means, in order to avoid
- * performing extra builds, we should batch together changes that occur within
- * close temporal proximity.
- *
- * However, we don't want to wait TOO long for new events, otherwise this
- * introduces latency between when the user makes a change, and when their build
- * actually starts.
- *
- * FileChangeEventBatchUtil implements an algorithm that groups together changes that occur
- * within X milliseconds of each other.
- *
- * The algorithm is: After at least one event is received, wait for there to be
- * be no more events in the stream of events (within eg 1000 msecs) before
- * sending them to the server. If an event is seen within 1000 msecs, the timer
- * is reset and a new 1000 msec timer begins. Batch together events seen since
- * within a given timeframe, and send them as a single request.
- *
- * This code receives file change events from the watch service, and forwards
- * batched groups of events to the HTTP POST output queue.
- *
- */
+// FileChangeEventBatchUtil implements an algorithm that groups together changes that occur
+// within X milliseconds of each other.
+//
+// When file/directory change events occur in quick succession (within
+// milliseconds of each other), it tends to imply that they are related. For
+// example, if you were refactoring Java code, that refactoring operation might
+// touch a bunch of source files at once. This means, in order to avoid
+// performing extra builds, we should batch together changes that occur within
+// close temporal proximity.
+//
+// However, we don't want to wait TOO long for new events, otherwise this
+// introduces latency between when the user makes a change, and when their build
+// actually starts.
+//
+// The algorithm is: After at least one event is received, wait for there to be
+// be no more events in the stream of events (within eg 1000 msecs) before
+// sending them to the server. If an event is seen within 1000 msecs, the timer
+// is reset and a new 1000 msec timer begins. Batch together events seen since
+// within a given timeframe, and send them as a single request.
+//
+// This code receives file change events from the watch service, and forwards
+// batched groups of events to the HTTP POST output queue.
 type FileChangeEventBatchUtil struct {
 	filesChangesChan      chan []ChangedFileEntry
 	debugState_synch_lock string // Lock 'lock' before reading/writing this
@@ -57,6 +54,7 @@ type FileChangeEventBatchUtil struct {
 	lock                  *sync.Mutex
 }
 
+// NewFileChangeEventBatchUtil ...
 func NewFileChangeEventBatchUtil(projectID string, postOutputQueue *HttpPostOutputQueue, projectList *ProjectList) *FileChangeEventBatchUtil {
 
 	result := &FileChangeEventBatchUtil{
@@ -71,10 +69,12 @@ func NewFileChangeEventBatchUtil(projectID string, postOutputQueue *HttpPostOutp
 	return result
 }
 
+// AddChangedFiles ...
 func (e *FileChangeEventBatchUtil) AddChangedFiles(changedFileEntries []ChangedFileEntry) {
 	e.filesChangesChan <- changedFileEntries
 }
 
+// RequestDebugMessage ...
 func (e *FileChangeEventBatchUtil) RequestDebugMessage() string {
 
 	e.lock.Lock()
@@ -249,6 +249,10 @@ func generateChangeListSummaryForDebug(eventsToSend []ChangedFileEntry) string {
 			filename = filename[(index + 1):]
 		}
 
+		if len(filename) == 0 {
+			filename = "/" // Handle event on the root project directory as "/"
+		}
+
 		result += filename + " "
 
 		// Only output the first 256 chars of changes, to reduce log verbosity
@@ -318,11 +322,9 @@ func compressAndConvertString(strBytes []byte) (*string, error) {
 	return &toBase64, nil
 }
 
-/**
- * Simple representation of a single change: the file/dir path that changed,
- * what type of change, and when. These are then consumed by the batch
- * processing utility.
- */
+// ChangedFileEntry is a imple representation of a single change: the file/dir path that changed,
+// what type of change, and when. These are then consumed by the batch
+// processing utility.
 type ChangedFileEntry struct {
 	path      string
 	eventType string
@@ -352,6 +354,7 @@ func (e *ChangedFileEntry) toDebugString() string {
 	return e.path + " " + strconv.FormatInt(e.timestamp, 10) + " " + e.eventType + " " + strconv.FormatBool(e.directory)
 }
 
+// NewChangedFileEntry ...
 func NewChangedFileEntry(path string, eventType string, timestamp int64, directory bool) (*ChangedFileEntry, error) {
 
 	if len(strings.TrimSpace(path)) == 0 || len(strings.TrimSpace(eventType)) == 0 || timestamp <= 0 {

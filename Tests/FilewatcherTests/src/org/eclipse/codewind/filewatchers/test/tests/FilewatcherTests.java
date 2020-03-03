@@ -1069,6 +1069,44 @@ public class FilewatcherTests extends AbstractTest {
 
 	}
 
+	/**
+	 * Does the filewatcher correctly detect (and call cwctl) when the root of the
+	 * project is deleted
+	 */
+	@Test
+	public void testDeleteProjectRoot() throws IOException {
+		initializeServer();
+		sendTestName();
+
+		ProjectToWatchJson p1 = newProject();
+		watcherState.addOrUpdateProject(p1);
+
+		waitForWatcherSuccess(p1);
+
+		final Path toDelete = p1.getLocalPathToMonitor().toPath();
+
+		___status___("Deleting directory: " + toDelete);
+
+		Files.delete(toDelete);
+
+		assertTrue(!Files.exists(toDelete));
+
+		waitNoThrowable(() -> {
+
+			// We should be able to detect the deletion event.
+			List<ChangedFileEntry> changedFiles = changeList.getAllChangedFileEntriesByProjectId(p1);
+
+			assertTrue(changedFiles.size() > 0);
+
+			if (!changedFiles.stream()
+					.anyMatch(e -> e.getPath().equalsIgnoreCase("/") && e.getEventType() == EventType.DELETE)) {
+				fail("Unable to find a file change for " + toDelete);
+			}
+
+		});
+
+	}
+
 	private List<File> excludeParentDirFromList(List<File> dirs, ProjectToWatchJson p) {
 		return dirs.stream().filter(e -> !e.equals(p.getLocalPathToMonitor())).collect(Collectors.toList());
 	}
