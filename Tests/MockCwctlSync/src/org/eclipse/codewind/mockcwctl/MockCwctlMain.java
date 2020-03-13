@@ -164,7 +164,7 @@ public class MockCwctlMain {
 			pwJson.setIgnoredPaths(Collections.emptyList());
 		}
 
-		String projectPath = projectPathParam;
+		final String projectPath = projectPathParam;
 
 		Path tempDir = homeDir.resolve(projectId);
 
@@ -186,6 +186,15 @@ public class MockCwctlMain {
 
 		List<FileEntry> deletedFilesOrFolders = previousState.getEntries().stream()
 				.filter(e -> !Files.exists(Paths.get(e.getPath()))).collect(Collectors.toList());
+
+		// If the root project directory doesn't exist, record that as a deletion.
+		if (!Files.exists(Paths.get(projectPathParam))) {
+			FileEntry fe = new FileEntry();
+			fe.setDirectory(Files.isDirectory(Paths.get(projectPathParam)));
+			fe.setModification(System.currentTimeMillis());
+			fe.setPath(projectPath);
+			deletedFilesOrFolders.add(fe);
+		}
 
 		List<WalkEntry> allFiles = walkDirectory(Paths.get(projectPathParam));
 		{

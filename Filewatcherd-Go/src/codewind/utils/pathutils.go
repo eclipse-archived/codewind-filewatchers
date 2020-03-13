@@ -20,6 +20,7 @@ import (
 	"unicode"
 )
 
+// IsWindowsAbsolutePath returns true if the path is in Windows absolute path format, false otherwise.
 func IsWindowsAbsolutePath(absolutePath string) bool {
 
 	if len(absolutePath) < 2 {
@@ -40,7 +41,7 @@ func IsWindowsAbsolutePath(absolutePath string) bool {
 
 }
 
-/** Ensure that the drive is lowercase for Unix-style paths from Windows. */
+// NormalizeDriveLetter ensures that the drive is lowercase for Unix-style paths from Windows.
 func NormalizeDriveLetter(absolutePath string) (string, error) {
 
 	if strings.Contains(absolutePath, "\\") {
@@ -78,7 +79,7 @@ func NormalizeDriveLetter(absolutePath string) (string, error) {
 	}
 }
 
-/** C:\helloThere -> /c/helloThere */
+// ConvertFromWindowsDriveLetter converts C:\helloThere -> /c/helloThere
 func ConvertFromWindowsDriveLetter(absolutePath string) string {
 
 	if !IsWindowsAbsolutePath(absolutePath) {
@@ -98,7 +99,7 @@ func ConvertFromWindowsDriveLetter(absolutePath string) string {
 
 }
 
-/** Same as below, but determine behaviour based on OS. */
+// ConvertAbsoluteUnixStyleNormalizedPathToLocalFile is the same as below, but determined behaviour based on OS.
 func ConvertAbsoluteUnixStyleNormalizedPathToLocalFile(str string) (string, error) {
 
 	if runtime.GOOS != "windows" {
@@ -109,7 +110,7 @@ func ConvertAbsoluteUnixStyleNormalizedPathToLocalFile(str string) (string, erro
 	return ConvertAbsoluteUnixStyleNormalizedPathToLocalFileOS(str, true)
 }
 
-/* Convert /c/Users/Administrator to c:\Users\Administrator */
+// ConvertAbsoluteUnixStyleNormalizedPathToLocalFileOS converts eg /c/Users/Administrator to c:\Users\Administrator */
 func ConvertAbsoluteUnixStyleNormalizedPathToLocalFileOS(str string, isWindows bool) (string, error) {
 
 	if !isWindows {
@@ -143,16 +144,15 @@ func ConvertAbsoluteUnixStyleNormalizedPathToLocalFileOS(str string, isWindows b
 
 }
 
-/**
- * This type is responsible for taking the filename/path filters for a project
- * on the watched projects list, and applying those filters against a given path
- * string (returning true if a filter should be ignored).
- */
+// PathFilter is responsible for taking the filename/path filters for a project
+// on the watched projects list, and applying those filters against a given path
+// string (returning true if a filter should be ignored).
 type PathFilter struct {
 	filenameExcludePatterns []*regexp.Regexp
 	pathExcludePatterns     []*regexp.Regexp
 }
 
+// NewPathFilter ...
 func NewPathFilter(project *models.ProjectToWatch) (*PathFilter, error) {
 
 	result := PathFilter{
@@ -202,6 +202,7 @@ func NewPathFilter(project *models.ProjectToWatch) (*PathFilter, error) {
 	return &result, nil
 }
 
+// IsFilteredOutByFilename ...
 func (p *PathFilter) IsFilteredOutByFilename(pathParam string) bool {
 
 	if strings.Contains(pathParam, "\\") {
@@ -251,6 +252,7 @@ func (p *PathFilter) IsFilteredOutByPath(path string) bool {
 
 }
 
+// ConvertAbsolutePathWithUnixSeparatorsToProjectRelativePath ...
 func ConvertAbsolutePathWithUnixSeparatorsToProjectRelativePath(path string, rootPath string) *string {
 
 	// Strip project parent directory from path:
@@ -274,15 +276,14 @@ func ConvertAbsolutePathWithUnixSeparatorsToProjectRelativePath(path string, roo
 	path = strings.ReplaceAll(path, rootPath, "")
 
 	if len(path) == 0 {
-		// Ignore the empty case
-		return nil
+		path = "/"
 	}
 
 	return &path
 
 }
 
-/** "/moo/cow" => [ "/moo/cow", "/moo"] */
+// SplitRelativeProjectPathIntoComponentPaths will, eg, convert "/moo/cow" => [ "/moo/cow", "/moo"]
 func SplitRelativeProjectPathIntoComponentPaths(path string) []string {
 	result := make([]string, 0)
 
