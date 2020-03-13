@@ -1,6 +1,6 @@
 {
     "name": "codewind-filewatcher",
-    "version": "0.9.0",
+    "version": "0.11.0",
     "description": "File change notification client that recursively monitors project directories and notifies the Codewind server of file changes",
     "repository": "https://github.com/eclipse/codewind-filewatchers/",
     "license": "EPL-2.0",
@@ -22,15 +22,13 @@
     },
     "dependencies": {
         "chokidar": "^3.0.2",
-        "request": "^2.88.0",
-        "request-promise-native": "^1.0.7",
+        "got": "^10.6.0",
         "ws": "^6.2.1"
     },
     "devDependencies": {
         "@types/node": "^10.12.1",
-        "@types/request": "^2.48.2",
-        "@types/request-promise-native": "^1.0.16",
         "@types/ws": "^6.0.2",
+        "@types/got": "^9.6.9",
         "concurrently": "^3.6.1",
         "nodemon": "^1.18.11",
         "tslint": "^5.16.0",

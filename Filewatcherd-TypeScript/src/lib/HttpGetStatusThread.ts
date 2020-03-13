@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (c) 2019 IBM Corporation and others.
+* Copyright (c) 2019, 2020 IBM Corporation and others.
 * All rights reserved. This program and the accompanying materials
 * are made available under the terms of the Eclipse Public License v2.0
 * which accompanies this distribution, and is available at
@@ -9,11 +9,9 @@
 *     IBM Corporation - initial API and implementation
 *******************************************************************************/
 
-import * as request from "request-promise-native";
-
-import * as models from "./Models";
-
 import * as log from "./Logger";
+
+import got from "got";
 
 import { ExponentialBackoffUtil } from "./ExponentialBackoffUtil";
 import { FileWatcher } from "./FileWatcher";
@@ -73,21 +71,17 @@ export class HttpGetStatusThread {
 
     private async doHttpGet(): Promise<ProjectToWatch[]> {
 
-        const options = {
-            followRedirect: false,
-            json: true,
+        const requestObj = {
+            header: {},
             rejectUnauthorized: false,
-            resolveWithFullResponse: true,
+            retry: 0,
             timeout: 20000,
-        } as request.RequestPromiseOptions;
+        };
 
         const authTokenWrapper = this._parent.authTokenWrapper;
         const authToken = authTokenWrapper.getLatestToken();
         if (authToken && authToken.accessToken) {
-
-            options.auth = {
-                bearer: authToken.accessToken,
-            };
+            requestObj.header = { bearer: authToken.accessToken };
         }
 
         try {
@@ -96,18 +90,17 @@ export class HttpGetStatusThread {
 
             log.info("Initiating GET request to " + url);
 
-            const httpResult = await request.get(url, options);
+            const response = await got(url, requestObj);
 
-            if (httpResult.statusCode && httpResult.statusCode === 200 && httpResult.body) {
+            if (response.statusCode  === 200 && response.body) {
 
                 // Strip EOL characters to ensure it fits on one log line.
-                let bodyVal = JSON.stringify(httpResult.body);
-                bodyVal = bodyVal.replace("\n", "");
-                bodyVal = bodyVal.replace("\r", "");
+                const w = JSON.parse(response.body);
 
-                log.info("GET response received: " + bodyVal);
+                const debugVal = JSON.stringify(w).replace("\n", "").replace("\r", "");
 
-                const w: models.IWatchedProjectListJson = httpResult.body;
+                log.info("GET response received: " + debugVal);
+
                 if (w == null || w === undefined) {
                     log.error("Expected value not found for GET watchlist endpoint");
                     return null;
@@ -130,10 +123,14 @@ export class HttpGetStatusThread {
 
             } else {
 
+                if (response) {
+                    log.info("GET request failed, details: " + response.statusCode + " " + response.body);
+                }
+
                 // Inform bad token if we are redirected to an OIDC endpoint
-                if (authToken && authToken.accessToken && httpResult.statusCode && httpResult.statusCode === 302
-                    && httpResult.headers && httpResult.headers.location
-                    && httpResult.headers.location.indexOf("openid-connect/auth") !== -1) {
+                if (authToken && authToken.accessToken && response.statusCode && response.statusCode === 302
+                    && response.headers && response.headers.location
+                    && response.headers.location.indexOf("openid-connect/auth") !== -1) {
 
                     authTokenWrapper.informBadToken(authToken);
                 }

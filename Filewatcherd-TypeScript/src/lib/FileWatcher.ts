@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (c) 2019 IBM Corporation and others.
+* Copyright (c) 2019, 2020 IBM Corporation and others.
 * All rights reserved. This program and the accompanying materials
 * are made available under the terms of the Eclipse Public License v2.0
 * which accompanies this distribution, and is available at
@@ -17,12 +17,12 @@ import { ProjectToWatch } from "./ProjectToWatch";
 import { WatchEventEntry } from "./WatchEventEntry";
 
 import { ChangedFileEntry } from "./ChangedFileEntry";
-import { HttpPostOutputQueue } from "./HttpPostOutputQueue";
 import { PathFilter } from "./PathFilter";
 import { ProjectToWatchFromWebSocket } from "./ProjectToWatchFromWebSocket";
 import { WebSocketManagerThread } from "./WebSocketManagerThread";
 
-import * as request from "request-promise-native";
+import got from "got";
+
 import { AuthTokenWrapper } from "./AuthTokenWrapper";
 import { DebugTimer } from "./DebugTimer";
 import { ExponentialBackoffUtil } from "./ExponentialBackoffUtil";
@@ -50,8 +50,6 @@ export class FileWatcher {
 
     private readonly _internalWatchService: IWatchService;
     private readonly _externalWatchService: IWatchService;
-
-    private readonly _outputQueue: HttpPostOutputQueue;
 
     private readonly _webSocketManager: WebSocketManagerThread;
 
@@ -84,11 +82,13 @@ export class FileWatcher {
 
         this._projectsMap = new Map<string, ProjectObject>();
 
+        if (!urlParam || urlParam.trim().length === 0) {
+            throw new Error("No URL specified; if running standalone then set CODEWIND_URL_ROOT");
+        }
+
         this._baseUrl = PathUtils.stripTrailingSlash(urlParam);
 
         this._individualFileWatchService = new IndividualFileWatchService(this);
-
-        this._outputQueue = new HttpPostOutputQueue(this._baseUrl, this._authTokenWrapper);
 
         let calculatedWsUrl = this._baseUrl;
         calculatedWsUrl = calculatedWsUrl.replace("http://", "ws://");
@@ -274,12 +274,6 @@ export class FileWatcher {
 
     }
 
-    public sendBulkFileChanges(projectId: string, mostRecentEntryTimestamp: number, base64Compressed: string[]) {
-        if (this._disposed) { return; }
-
-        this._outputQueue.addToQueue(projectId, mostRecentEntryTimestamp, base64Compressed);
-    }
-
     public updateFileWatchStateFromWebSocket(ptwList: ProjectToWatchFromWebSocket[]) {
         if (this._disposed) { return; }
 
@@ -324,21 +318,17 @@ export class FileWatcher {
                 success: successParam,
             };
 
-            const options = {
-                body: payload,
-                followRedirect: false,
-                json: true,
+            const requestObj = {
+                body: JSON.stringify(payload),
+                header: {},
                 rejectUnauthorized: false,
-                resolveWithFullResponse: true,
+                retry: 0,
                 timeout: 20000,
-            } as request.RequestPromiseOptions;
+            };
 
             const authToken = this._authTokenWrapper.getLatestToken();
             if (authToken && authToken.accessToken) {
-
-                options.auth = {
-                    bearer: authToken.accessToken,
-                };
+                requestObj.header = { bearer: authToken.accessToken };
             }
 
             const url = this._baseUrl + "/api/v1/projects/" + ptw.projectId + "/file-changes/"
@@ -346,16 +336,16 @@ export class FileWatcher {
 
             log.info("Issuing PUT request to '" + url + "' for " + ptw.projectId);
             try {
-                const result = await request.put(url, options);
+                const response = await got.put(url, requestObj);
 
-                if (result.statusCode !== 200) {
-                    log.error("Unexpected error code " + result.statusCode
+                if (response.statusCode !== 200) {
+                    log.error("Unexpected error code " + response.statusCode
                         + " from '" + url + "' for " + ptw.projectId);
 
                     // Inform bad token if we are redirected to an OIDC endpoint
-                    if (authToken && authToken.accessToken && result.statusCode && result.statusCode === 302
-                        && result.headers && result.headers.location
-                        && result.headers.location.indexOf("openid-connect/auth") !== -1) {
+                    if (authToken && authToken.accessToken && response.statusCode && response.statusCode === 302
+                        && response.headers && response.headers.location
+                        && response.headers.location.indexOf("openid-connect/auth") !== -1) {
 
                         this._authTokenWrapper.informBadToken(authToken);
                     }
@@ -424,7 +414,6 @@ export class FileWatcher {
             this._externalWatchService.dispose();
         }
 
-        this._outputQueue.dispose();
         this._webSocketManager.dispose();
 
         this._projectsMap.forEach((e) => {
@@ -469,8 +458,6 @@ export class FileWatcher {
             }
             result += "\n";
         }
-
-        result += "\nHTTP Post Output Queue:\n" + this._outputQueue.generateDebugString().trim() + "\n\n";
 
         result += "---------------------------------------------------------------------------------------\n\n";
 
