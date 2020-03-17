@@ -72,7 +72,7 @@ export class HttpGetStatusThread {
     private async doHttpGet(): Promise<ProjectToWatch[]> {
 
         const requestObj = {
-            header: {},
+            headers: {},
             rejectUnauthorized: false,
             retry: 0,
             timeout: 20000,
@@ -81,7 +81,7 @@ export class HttpGetStatusThread {
         const authTokenWrapper = this._parent.authTokenWrapper;
         const authToken = authTokenWrapper.getLatestToken();
         if (authToken && authToken.accessToken) {
-            requestObj.header = { bearer: authToken.accessToken };
+            requestObj.headers = { Authorization: "Bearer " + authToken.accessToken };
         }
 
         try {

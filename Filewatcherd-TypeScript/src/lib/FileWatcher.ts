@@ -319,8 +319,8 @@ export class FileWatcher {
             };
 
             const requestObj = {
-                body: JSON.stringify(payload),
-                header: {},
+                headers: {},
+                json: payload,
                 rejectUnauthorized: false,
                 retry: 0,
                 timeout: 20000,
@@ -328,7 +328,7 @@ export class FileWatcher {
 
             const authToken = this._authTokenWrapper.getLatestToken();
             if (authToken && authToken.accessToken) {
-                requestObj.header = { bearer: authToken.accessToken };
+                requestObj.headers = { Authorization: "Bearer " + authToken.accessToken };
             }
 
             const url = this._baseUrl + "/api/v1/projects/" + ptw.projectId + "/file-changes/"
@@ -357,7 +357,7 @@ export class FileWatcher {
                 }
 
             } catch (err) {
-                log.error("Unable to connect to '" + url + "', " + err.message + " for " + ptw.projectId);
+                log.error("PUT request unable to connect to '" + url + "', " + err.message + " for " + ptw.projectId);
                 sendSuccess = false;
 
                 // Inform bad token if we are redirected to an OIDC endpoint
