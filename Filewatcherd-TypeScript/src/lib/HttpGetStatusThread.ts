@@ -92,7 +92,7 @@ export class HttpGetStatusThread {
 
             const response = await got(url, requestObj);
 
-            if (response.statusCode  === 200 && response.body) {
+            if (response.statusCode === 200 && response.body) {
 
                 // Strip EOL characters to ensure it fits on one log line.
                 const w = JSON.parse(response.body);
