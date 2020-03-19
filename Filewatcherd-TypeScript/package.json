@@ -21,7 +21,7 @@
         "package": "./npm-package.sh"
     },
     "dependencies": {
-        "chokidar": "^3.0.2",
+        "chokidar": "^3.3.1",
         "got": "^10.6.0",
         "ws": "^6.2.1"
     },
@@ -30,8 +30,8 @@
         "@types/ws": "^6.0.2",
         "@types/got": "^9.6.9",
         "concurrently": "^3.6.1",
-        "nodemon": "^1.18.11",
-        "tslint": "^5.16.0",
+        "nodemon": "^2.0.2",
+        "tslint": "^6.1.0",
         "typescript": "^3.1.5"
     }
 }
