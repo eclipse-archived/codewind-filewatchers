@@ -175,6 +175,8 @@ export class WatchedPath {
 
     private async closeWatcherAsync() {
 
+        // As of Chokidar 3.2.0, we should only close the watch if the directory exists; if the directory
+        // doesn't exist then Chokidar has already cleaned it up on its own.
         if (existsSync(this._pathRoot) && this._watcher) {
             this._watcher.close();
         }
@@ -213,25 +215,11 @@ export class WatchedPath {
 
         this._parent.handleEvent(entry);
 
-        // this.scanCreatedDirectory(path);
-
         // If it is the root directory that is going away, then dispose of the watcher.
         if (path === this._pathRoot && type === "DELETE") {
-            log.info("Watcher observed deletion of the root path "
-                + this._pathRoot + ", so disposing in 30 seconds from now.");
+            log.debug("Watcher observed deletion of the root path " + this._pathRoot);
 
             this.dispose();
-            if (this._watcher) {
-                // this._watcher.close();
-                // this._watcher.unwatch(this._pathRoot);
-            }
-
-            // Wait 30 seconds to ensure any other related events have been processed.
-            // setTimeout(() => {
-            //     log.debug("Watcher previously observed deletion of the root path "
-            //         + this._pathRoot + ", now calling dispose().");
-            //     this.dispose();
-            // }, 30 * 1000);
         }
 
     }
