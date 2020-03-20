@@ -50,6 +50,11 @@ spec:
     stages {
 
         stage('Build TypeScript Filewatcher') {
+
+            options {
+                timeout(time: 30, unit: 'MINUTES') 
+            }
+
             steps {
                 container("filewatcherd-ts-builder") {
                     dir ("Filewatcherd-TypeScript") {
@@ -63,6 +68,11 @@ spec:
         }
 
         stage('Run tests') {
+
+            options {
+                timeout(time: 120, unit: 'MINUTES') 
+            }
+
             steps {
                 container("go") {
                     dir ("Tests") {
