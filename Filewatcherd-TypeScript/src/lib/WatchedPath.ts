@@ -221,7 +221,7 @@ export class WatchedPath {
 
             this.dispose();
             if (this._watcher) {
-                this._watcher.close();
+                // this._watcher.close();
                 // this._watcher.unwatch(this._pathRoot);
             }
 
