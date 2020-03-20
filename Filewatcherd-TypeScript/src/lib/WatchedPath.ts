@@ -169,12 +169,13 @@ export class WatchedPath {
 
         this._watchIsReady = false;
 
-        // this.closeWatcherAsync();
+        this.closeWatcherAsync();
 
     }
 
     private async closeWatcherAsync() {
-        if (this._watcher) {
+
+        if (existsSync(this._pathRoot) && this._watcher) {
             this._watcher.close();
         }
     }
