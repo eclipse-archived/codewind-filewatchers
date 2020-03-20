@@ -93,7 +93,7 @@ export class WatchedPath {
 
             } else {
                 // Wait up to 5 minutes for the directory to appear.
-                setTimeout( () => {
+                setTimeout(() => {
                     this.waitForPathToExist(attempts + 1, startTime);
                 }, 1000);
 
@@ -169,7 +169,7 @@ export class WatchedPath {
 
         this._watchIsReady = false;
 
-	// this.closeWatcherAsync();
+        // this.closeWatcherAsync();
 
     }
 
@@ -219,17 +219,18 @@ export class WatchedPath {
             log.info("Watcher observed deletion of the root path "
                 + this._pathRoot + ", so disposing in 30 seconds from now.");
 
-    	 	if (this._watcher) {
-		this._watcher.close();
-		//this._watcher.unwatch(this._pathRoot);
+            this.dispose();
+            if (this._watcher) {
+                this._watcher.close();
+                // this._watcher.unwatch(this._pathRoot);
             }
 
             // Wait 30 seconds to ensure any other related events have been processed.
-            setTimeout(() => {
-                log.debug("Watcher previously observed deletion of the root path "
-                    + this._pathRoot + ", now calling dispose().");
-                this.dispose();
-            }, 30 * 1000);
+            // setTimeout(() => {
+            //     log.debug("Watcher previously observed deletion of the root path "
+            //         + this._pathRoot + ", now calling dispose().");
+            //     this.dispose();
+            // }, 30 * 1000);
         }
 
     }
