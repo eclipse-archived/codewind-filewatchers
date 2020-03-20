@@ -339,6 +339,7 @@ public class FilewatcherTests extends AbstractTest {
 	}
 
 	@Test
+//	@Ignore
 	public void testCreateDeleteCreate() {
 		initializeServer();
 		sendTestName();

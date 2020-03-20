@@ -169,7 +169,7 @@ export class WatchedPath {
 
         this._watchIsReady = false;
 
-        this.closeWatcherAsync();
+	// this.closeWatcherAsync();
 
     }
 
@@ -216,11 +216,12 @@ export class WatchedPath {
 
         // If it is the root directory that is going away, then dispose of the watcher.
         if (path === this._pathRoot && type === "DELETE") {
-            log.debug("Watcher observed deletion of the root path "
+            log.info("Watcher observed deletion of the root path "
                 + this._pathRoot + ", so disposing in 30 seconds from now.");
 
-            if (this._watcher) {
-                this._watcher.unwatch(this._pathRoot);
+    	 	if (this._watcher) {
+		this._watcher.close();
+		//this._watcher.unwatch(this._pathRoot);
             }
 
             // Wait 30 seconds to ensure any other related events have been processed.
