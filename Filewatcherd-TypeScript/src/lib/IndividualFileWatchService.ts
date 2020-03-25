@@ -78,8 +78,6 @@ export class IndividualFileWatchService {
             return;
         }
 
-        let mapUpdated = false;
-
         const currProjectState = this._filesToWatchMap.get(projectId);
 
         if (!currProjectState) {
@@ -93,7 +91,6 @@ export class IndividualFileWatchService {
                 newFiles.set(pollEntry.absolutePath, pollEntry);
                 log.info("Files to watch - recently added for new project: " + path);
             }
-            mapUpdated = true;
 
             this._filesToWatchMap.set(projectId, newFiles);
         } else {
@@ -106,7 +103,6 @@ export class IndividualFileWatchService {
 
                     log.info("Files to watch - recently added for existing project: " + path);
                     currProjectState.set(path, new PollEntry(PollEntryStatus.RECENTLY_ADDED, path, 0));
-                    mapUpdated = true;
 
                 } else {
                     // Ignore: the path is in both maps -- no change.
@@ -127,7 +123,6 @@ export class IndividualFileWatchService {
                 if (!pathsInParam.has(pathInCurrentState)) {
                     keysToRemove.push(pathInCurrentState);
                     log.info("Files to watch - removing from watch list: " + pathInCurrentState);
-                    mapUpdated = true;
                 }
             }
             for (const keyToRemove of keysToRemove) {

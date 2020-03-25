@@ -45,7 +45,7 @@ export class AuthTokenWrapper {
         this._authTokenProvider = authTokenProvider;
         this._invalidKeysSet = new Set();
     }
-    
+
     public getLatestToken(): FWAuthToken | undefined {
         if (!this._authTokenProvider) { return undefined; }
 
@@ -79,7 +79,7 @@ export class AuthTokenWrapper {
 
             const keyToRemove = this._recentInvalidKeysQueue.shift(); // remove from front
 
-            if(!keyToRemove) {
+            if (!keyToRemove) {
                 break;
             }
 
