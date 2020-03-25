@@ -40,8 +40,6 @@ export class FileLogger {
 
     private _initialized: boolean = false;
 
-    private readonly _parent: LogSettings;
-
     public constructor(logDir: string) {
         this._logDir = logDir;
 

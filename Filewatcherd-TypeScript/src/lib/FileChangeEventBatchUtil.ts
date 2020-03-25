@@ -9,8 +9,7 @@
 *     IBM Corporation - initial API and implementation
 *******************************************************************************/
 
-import zlib = require("zlib");
-import { ChangedFileEntry, IChangedFileEntryJson } from "./ChangedFileEntry";
+import { ChangedFileEntry } from "./ChangedFileEntry";
 import { FileWatcher } from "./FileWatcher";
 import * as log from "./Logger";
 import { EventType } from "./WatchEventEntry";
@@ -44,11 +43,9 @@ export class FileChangeEventBatchUtil {
 
     private static readonly TIME_TO_WAIT_FOR_NO_NEW_EVENTS_IN_MSECS = 1000;
 
-    private static readonly MAX_REQUEST_SIZE_IN_PATHS = 625;
-
     private _files: ChangedFileEntry[];
 
-    private _timer: NodeJS.Timer = null;
+    private _timer: NodeJS.Timeout | undefined;
 
     private _disposed: boolean = false;
 
@@ -74,7 +71,7 @@ export class FileChangeEventBatchUtil {
             this._files.push(entry);
         }
 
-        if (this._timer != null) {
+        if (this._timer) {
             clearTimeout(this._timer);
         }
 
@@ -105,8 +102,10 @@ export class FileChangeEventBatchUtil {
         this._files = [];
 
         // Clear the timeout if it already exists.
-        clearTimeout(this._timer);
-        this._timer = null;
+        if(this._timer) {
+            clearTimeout(this._timer);
+            this._timer = undefined;
+        }
 
         if (entries.length === 0) {
             return;

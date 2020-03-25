@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (c) 2019 IBM Corporation and others.
+* Copyright (c) 2019, 2020 IBM Corporation and others.
 * All rights reserved. This program and the accompanying materials
 * are made available under the terms of the Eclipse Public License v2.0
 * which accompanies this distribution, and is available at
@@ -26,8 +26,9 @@ export function eventTypetoString(type: EventType): string {
     } else if (type === EventType.DELETE) {
         return "DELETE";
     } else {
-        log.severe("Unable to convert event type to string - " + type);
-        return null;
+        const msg = "Unable to convert event type to string - " + type;
+        log.severe(msg);
+        throw new Error(msg);
     }
 
 }
@@ -40,8 +41,9 @@ export function getEventTypeFromString(str: string): EventType {
     } else if (str === "DELETE") {
         return EventType.DELETE;
     } else {
-        log.severe("Unable to find event type: this shouldn't happen - " + str);
-        return null;
+        const msg = "Unable to find event type: this shouldn't happen - " + str;
+        log.severe(msg);
+        throw new Error(msg);
     }
 }
 

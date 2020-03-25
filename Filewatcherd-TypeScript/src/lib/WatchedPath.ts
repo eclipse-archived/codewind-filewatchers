@@ -43,7 +43,7 @@ export class WatchedPath {
 
     private readonly _normalizedPath: string;
 
-    private _watcher: chokidar.FSWatcher;
+    private _watcher: chokidar.FSWatcher | undefined;
 
     private readonly _parent: WatchService;
 
@@ -89,7 +89,11 @@ export class WatchedPath {
             if (new Date().getTime() - startTime.getTime() > 60 * 5 * 1000) {
                 // After 5 minutes, stop waiting for the watch and report the error
                 log.error("Watch failed on " + this._pathRoot);
-                this._parent.parent.sendWatchResponseAsync(false, this._projectToWatch);
+                if (this._parent.parent) {
+                    this._parent.parent.sendWatchResponseAsync(false, this._projectToWatch);
+                } else {
+                    log.severe("Reference to parent fw is not set.");
+                }
 
             } else {
                 // Wait up to 5 minutes for the directory to appear.
@@ -107,7 +111,7 @@ export class WatchedPath {
         const pathFilterConst = this._pathFilter;
 
         /** Decide what to ignore using our custom function; true if should ignore, false otherwise. */
-        const ignoreFunction = (a: string, _: any) => {
+        const ignoreFunction = (a: string | undefined, _: any) => {
             if (!a) { return false; }
 
             a = convertAbsolutePathWithUnixSeparatorsToProjectRelativePath(normalizePath(a), normalizedPathConst);
@@ -152,7 +156,11 @@ export class WatchedPath {
                 if (this._disposed) { return; }
                 this._watchIsReady = true;
                 log.info("Initial scan of '" + this._pathRoot + "' complete. Ready for changes");
-                this._parent.parent.sendWatchResponseAsync(true, this._projectToWatch);
+                if (this._parent.parent) {
+                    this._parent.parent.sendWatchResponseAsync(true, this._projectToWatch);
+                } else {
+                    log.severe("Reference to parent fw is not set.");
+                }
             });
 
         // this._watcher.on("change", (path, stats) => {
@@ -234,26 +242,26 @@ export class WatchedPath {
      * had no obvious effect.
      * @param path Path to scan
      */
-    private scanCreatedDirectory(path: string) {
-        const directoriesFound: string[] = [];
-        const filesFound: string[] = [];
+    // private scanCreatedDirectory(path: string) {
+    //     const directoriesFound: string[] = [];
+    //     const filesFound: string[] = [];
 
-        const newWatchEvents = new Array<WatchEventEntry>();
+    //     const newWatchEvents = new Array<WatchEventEntry>();
 
-        this.scanCreatedDirectoryInner(path, directoriesFound, filesFound);
+    //     this.scanCreatedDirectoryInner(path, directoriesFound, filesFound);
 
-        for (const dir of directoriesFound) {
-            newWatchEvents.push(new WatchEventEntry(watchEvents.EventType.CREATE, dir, true));
-        }
+    //     for (const dir of directoriesFound) {
+    //         newWatchEvents.push(new WatchEventEntry(watchEvents.EventType.CREATE, dir, true));
+    //     }
 
-        for (const file of filesFound) {
-            newWatchEvents.push(new WatchEventEntry(watchEvents.EventType.CREATE, file, false));
-        }
+    //     for (const file of filesFound) {
+    //         newWatchEvents.push(new WatchEventEntry(watchEvents.EventType.CREATE, file, false));
+    //     }
 
-        for (const we of newWatchEvents) {
-            this._parent.handleEvent(we);
-        }
-    }
+    //     for (const we of newWatchEvents) {
+    //         this._parent.handleEvent(we);
+    //     }
+    // }
 
     private scanCreatedDirectoryInner(path: string, directoriesFound: string[], filesFound: string[]) {
         readdir(path, (err, files) => {

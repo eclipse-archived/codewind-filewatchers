@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (c) 2019 IBM Corporation and others.
+* Copyright (c) 2019, 2020 IBM Corporation and others.
 * All rights reserved. This program and the accompanying materials
 * are made available under the terms of the Eclipse Public License v2.0
 * which accompanies this distribution, and is available at
@@ -9,7 +9,6 @@
 *     IBM Corporation - initial API and implementation
 *******************************************************************************/
 
-import path = require("path");
 import { ProjectToWatch } from "./ProjectToWatch";
 
 import * as log from "./Logger";
@@ -29,7 +28,7 @@ export class PathFilter {
 
         const filenameExcludePatterns: RegExp[] = [];
 
-        if (ptw.ignoredFilenames != null) {
+        if (ptw.ignoredFilenames) {
             ptw.ignoredFilenames.forEach((e) => {
                 if (e.indexOf("/") !== -1 || e.indexOf("\\") !== -1) {
                     log.severe("Ignored filenames may not contain path separators: " + e);
@@ -46,7 +45,7 @@ export class PathFilter {
         this._filenameExcludePatterns = filenameExcludePatterns;
 
         const pathExcludePatterns: RegExp[] = [];
-        if (ptw.ignoredPaths != null) {
+        if (ptw.ignoredPaths) {
             ptw.ignoredPaths.forEach((e) => {
                 if (e.indexOf("\\") !== -1) {
                     log.severe("Ignore paths may not contain Windows-style path separators: " + e);

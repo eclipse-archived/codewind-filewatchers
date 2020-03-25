@@ -38,9 +38,9 @@ export class HttpGetStatusThread {
 
     private _baseUrl: string;
 
-    private _inInnerLoop: boolean;
+    private _inInnerLoop: boolean = false;
 
-    private _timer: NodeJS.Timer = null;
+    private _timer: NodeJS.Timeout | undefined;
 
     private _disposed: boolean = false;
 
@@ -69,7 +69,7 @@ export class HttpGetStatusThread {
         this._disposed = true;
     }
 
-    private async doHttpGet(): Promise<ProjectToWatch[]> {
+    private async doHttpGet(): Promise<ProjectToWatch[] | undefined> {
 
         const requestObj = {
             headers: {},
@@ -101,9 +101,9 @@ export class HttpGetStatusThread {
 
                 log.info("GET response received: " + debugVal);
 
-                if (w == null || w === undefined) {
+                if (!w) {
                     log.error("Expected value not found for GET watchlist endpoint");
-                    return null;
+                    return undefined;
                 }
 
                 const result = new Array<ProjectToWatch>();
@@ -113,7 +113,7 @@ export class HttpGetStatusThread {
                     // Sanity check the JSON parsing
                     if (!e.projectID || !e.pathToMonitor) {
                         log.error("JSON parsing of GET watchlist endpoint failed with missing values");
-                        return null;
+                        return undefined;
                     }
 
                     result.push(ProjectToWatch.createFromJson(e, false));
@@ -135,7 +135,7 @@ export class HttpGetStatusThread {
                     authTokenWrapper.informBadToken(authToken);
                 }
 
-                return null;
+                return undefined;
             }
 
         } catch (err) {
@@ -151,7 +151,7 @@ export class HttpGetStatusThread {
 
             }
 
-            return null;
+            return undefined;
         }
 
     }
@@ -164,7 +164,7 @@ export class HttpGetStatusThread {
 
             const delay = ExponentialBackoffUtil.getDefaultBackoffUtil(4000);
 
-            let result: ProjectToWatch[] = null;
+            let result: ProjectToWatch[] | undefined;
 
             while (!success && !this._disposed) {
 
@@ -172,7 +172,7 @@ export class HttpGetStatusThread {
 
                 success = result != null;
 
-                if (!success) {
+                if (!result) {
                     log.error("HTTP get request failed");
                     await delay.sleepAsync();
                     delay.failIncrease();
@@ -192,7 +192,7 @@ export class HttpGetStatusThread {
 
     }
     private resetTimer() {
-        if (this._timer != null) {
+        if (this._timer) {
             clearTimeout(this._timer);
         }
 

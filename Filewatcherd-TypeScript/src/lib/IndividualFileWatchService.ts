@@ -45,7 +45,7 @@ export class IndividualFileWatchService {
 
     private _disposed: boolean = false;
 
-    private _timer: NodeJS.Timer = undefined;
+    private _timer: NodeJS.Timeout | undefined;
 
     constructor(filewatcher: FileWatcher) {
         this._filewatcher = filewatcher;
@@ -122,7 +122,7 @@ export class IndividualFileWatchService {
 
             // Look for values that are in curr project state, but not in the parameter list. These are
             // files that we WERE watching, but are no longer.
-            for (const [pathInCurrentState, _] of currProjectState) {
+            for (const [pathInCurrentState,] of currProjectState) {
 
                 if (!pathsInParam.has(pathInCurrentState)) {
                     keysToRemove.push(pathInCurrentState);

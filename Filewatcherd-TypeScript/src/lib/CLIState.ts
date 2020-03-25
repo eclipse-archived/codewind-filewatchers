@@ -39,10 +39,10 @@ export class CLIState {
     private readonly _projectPath: string;
 
     /** For automated testing only */
-    private readonly _mockInstallerPath: string;
+    private readonly _mockInstallerPath: string | undefined;
 
     /** For automated testing only */
-    private _lastDebugPtwSeen: ProjectToWatch = undefined;
+    private _lastDebugPtwSeen: ProjectToWatch | undefined;
 
     constructor(projectId: string, installerPath: string, projectPath: string) {
         this._projectId = projectId;
@@ -52,7 +52,7 @@ export class CLIState {
         this._mockInstallerPath = process.env.MOCK_CWCTL_INSTALLER_PATH;
     }
 
-    public onFileChangeEvent(projectCreationTimeInAbsoluteMsecsParam: number, debugPtw: ProjectToWatch) {
+    public onFileChangeEvent(projectCreationTimeInAbsoluteMsecsParam: number | undefined, debugPtw: ProjectToWatch | undefined) {
 
         if (!this._projectPath || this._projectPath.trim().length === 0) {
             log.error("Project path passed to CLIState is empty, so ignoring file change event.");
@@ -95,7 +95,7 @@ export class CLIState {
         }
     }
 
-    private async callCLIAsync(debugPtw: ProjectToWatch) {
+    private async callCLIAsync(debugPtw: ProjectToWatch | undefined) {
 
         const DEBUG_FAKE_CMD_OUTPUT = false; // Enable this for debugging purposes.
 
@@ -141,7 +141,7 @@ export class CLIState {
         }
     }
 
-    private async runProjectCommand(debugPtw: ProjectToWatch): Promise<IRunProjectReturn> {
+    private async runProjectCommand(debugPtw: ProjectToWatch | undefined): Promise<IRunProjectReturn> {
 
         const executableDir = path.dirname(this._installerPath);
 
@@ -160,6 +160,10 @@ export class CLIState {
             args = ["--insecure", "project", "sync", "-p", this._projectPath, "-i", this._projectId, "-t",
                 "" + lastTimestamp];
         } else {
+
+            if(!debugPtw) {
+                throw new Error("debugPtw ProjectToWatch object was not defined, but is required when debug is enabled");
+            }
 
             // The filewatcher is being run in an automated test scenario: we will now run a
             // mock version of cwctl that simulates the project sync command. This mock

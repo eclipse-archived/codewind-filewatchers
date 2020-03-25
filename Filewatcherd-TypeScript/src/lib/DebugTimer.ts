@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (c) 2019 IBM Corporation and others.
+* Copyright (c) 2019, 2020 IBM Corporation and others.
 * All rights reserved. This program and the accompanying materials
 * are made available under the terms of the Eclipse Public License v2.0
 * which accompanies this distribution, and is available at
@@ -25,14 +25,8 @@ export class DebugTimer {
 
     private readonly _parent: FileWatcher;
 
-    private _timer: NodeJS.Timer;
-
     constructor(parent: FileWatcher) {
         this._parent = parent;
-
-        const debugTimer = this;
-
-        this.schedule();
     }
 
     private tick() {
@@ -60,9 +54,9 @@ export class DebugTimer {
 
     }
 
-    private schedule() {
+    public schedule() {
         const debugTimer = this;
-        this._timer = setTimeout(() => {
+        setTimeout(() => {
             debugTimer.tick();
         }, 30 * 60 * 1000);
 

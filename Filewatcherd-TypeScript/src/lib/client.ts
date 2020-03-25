@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (c) 2019 IBM Corporation and others.
+* Copyright (c) 2019, 2020 IBM Corporation and others.
 * All rights reserved. This program and the accompanying materials
 * are made available under the terms of the Eclipse Public License v2.0
 * which accompanies this distribution, and is available at
@@ -28,8 +28,8 @@ import { WatchService } from "./WatchService";
  * @param codewindURL - Eg, http://localhost:9090
  * @param logDir - Directory to write logs to, by default ~/.codewind.
  */
-export default async function createWatcher(codewindURL: string, logDir?: string,
-                                            externalWatchService?: IWatchService, pathToInstaller?: string,
+export default async function createWatcher(codewindURL: string, pathToInstaller: string, logDir?: string,
+                                            externalWatchService?: IWatchService,
                                             authTokenProvider?: IAuthTokenProvider)
     : Promise<FileWatcher> {
 
@@ -67,11 +67,15 @@ export default async function createWatcher(codewindURL: string, logDir?: string
 
     }
 
+    if(pathToInstaller.trim().length === 0) {
+        throw new Error("Path to installer must be specified.");
+    }
+
     const watchService = new WatchService();
 
     const clientUuid = crypto.randomBytes(16).toString("hex");
 
-    const fw = new FileWatcher(codewindURL, watchService, (externalWatchService) ? externalWatchService : null,
+    const fw = new FileWatcher(codewindURL, watchService, (externalWatchService) ? externalWatchService : undefined,
         pathToInstaller, clientUuid, authTokenProvider);
 
     return fw;

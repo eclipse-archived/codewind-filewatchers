@@ -1,6 +1,6 @@
 
 /*******************************************************************************
-* Copyright (c) 2019 IBM Corporation and others.
+* Copyright (c) 2019, 2020 IBM Corporation and others.
 * All rights reserved. This program and the accompanying materials
 * are made available under the terms of the Eclipse Public License v2.0
 * which accompanies this distribution, and is available at
@@ -50,7 +50,7 @@ export class LogSettings {
 
     private _startTimeInMsecs: number;
 
-    private _fileLogger: FileLogger = null;
+    private _fileLogger: FileLogger | undefined;
 
     private _outputLogsToScreen: boolean = true;
 
@@ -101,7 +101,7 @@ export class LogSettings {
         this._fileLogger = fileLogger;
     }
 
-    public internalGetFileLogger(): FileLogger {
+    public internalGetFileLogger(): FileLogger | undefined {
         return this._fileLogger;
     }
 
@@ -177,7 +177,7 @@ function printOut(entry: any) {
     const outputLogsToScreen = LogSettings.getInstance().outputLogsToScreen;
 
     const fileLogger = LogSettings.getInstance().internalGetFileLogger();
-    if (fileLogger != null) {
+    if (fileLogger) {
         fileLogger.log(entry);
     }
 
@@ -199,7 +199,7 @@ function printErr(entry: any) {
         if (outputLogsToScreen) {
             console.error(msg);
         }
-        if (fileLogger != null) {
+        if (fileLogger) {
             fileLogger.log(msg);
         }
 
@@ -208,7 +208,7 @@ function printErr(entry: any) {
         if (outputLogsToScreen) {
             console.error(entry);
         }
-        if (fileLogger != null) {
+        if (fileLogger) {
             fileLogger.log(entry);
         }
 

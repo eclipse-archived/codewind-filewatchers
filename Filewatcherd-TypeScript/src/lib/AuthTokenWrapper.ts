@@ -38,18 +38,19 @@ export class AuthTokenWrapper {
      */
     private _invalidKeysSet: Set<string /* token */>;
 
-    private readonly _authTokenProvider: IAuthTokenProvider;
+    private readonly _authTokenProvider: IAuthTokenProvider | undefined;
 
-    constructor(authTokenProvider: IAuthTokenProvider) {
+    constructor(authTokenProvider: IAuthTokenProvider | undefined) {
         this._recentInvalidKeysQueue = new Array<FWAuthToken>();
         this._authTokenProvider = authTokenProvider;
         this._invalidKeysSet = new Set();
     }
-    public getLatestToken(): FWAuthToken {
-        if (!this._authTokenProvider) { return null; }
+    
+    public getLatestToken(): FWAuthToken | undefined {
+        if (!this._authTokenProvider) { return undefined; }
 
         const token = this._authTokenProvider.getLatestAuthToken();
-        if (!token) { return null; }
+        if (!token) { return undefined; }
 
         log.info("IDE returned a new security token to filewatcher: " + this.digest(token));
 
@@ -77,6 +78,11 @@ export class AuthTokenWrapper {
         while (this._recentInvalidKeysQueue.length > AuthTokenWrapper.KEEP_LAST_X_STALE_KEYS) {
 
             const keyToRemove = this._recentInvalidKeysQueue.shift(); // remove from front
+
+            if(!keyToRemove) {
+                break;
+            }
+
             this._invalidKeysSet.delete(keyToRemove.accessToken);
         }
 
@@ -88,11 +94,11 @@ export class AuthTokenWrapper {
      * Return a representation of the token that is at most 32 characters long, so
      * as not to overwhelm the log file.
      */
-    private digest(token: FWAuthToken): string {
-        if (!token) { return null; }
+    private digest(token: FWAuthToken): string | undefined {
+        if (!token) { return undefined; }
 
         const key = token.accessToken;
-        if (!key) { return null; }
+        if (!key) { return undefined; }
 
         return key.substring(0, Math.min(key.length, 32));
 

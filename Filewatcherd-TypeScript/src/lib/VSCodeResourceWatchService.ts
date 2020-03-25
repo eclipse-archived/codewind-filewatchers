@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (c) 2019 IBM Corporation and others.
+* Copyright (c) 2019, 2020 IBM Corporation and others.
 * All rights reserved. This program and the accompanying materials
 * are made available under the terms of the Eclipse Public License v2.0
 * which accompanies this distribution, and is available at
@@ -30,7 +30,7 @@ export class VSCodeResourceWatchService implements IWatchService {
 
     private readonly _projIdToWatchedPaths = new Map<string /* project Id to Watched Path */, VSCWatchedPath>();
 
-    private _parent: FileWatcher;
+    private _parent: FileWatcher | undefined;
 
     private _disposed: boolean = false;
 
@@ -72,7 +72,7 @@ export class VSCodeResourceWatchService implements IWatchService {
 
     public receiveWatchEntries(cwProjectId: string, entries: WatchEventEntry[]) {
 
-        const wp: VSCWatchedPath  = this._projIdToWatchedPaths.get(cwProjectId);
+        const wp: VSCWatchedPath | undefined  = this._projIdToWatchedPaths.get(cwProjectId);
         if (wp) {
             wp.receiveFileChanges(entries);
         } else {
@@ -88,7 +88,13 @@ export class VSCodeResourceWatchService implements IWatchService {
             log.info("Received event " + event.toString());
 
             const timeReceived = Math.round(new Date().getTime());
-            this._parent.receiveNewWatchEventEntry(event, timeReceived);
+
+            if(this._parent) {
+                this._parent.receiveNewWatchEventEntry(event, timeReceived);
+            } else {
+                log.severe("Parent not defined in VSCodeResourceWatchService.");
+            }
+
         } catch (e) {
             log.severe("handleEvent caught an uncaught exception.", e);
         }
@@ -98,7 +104,7 @@ export class VSCodeResourceWatchService implements IWatchService {
         this._parent = parent;
     }
 
-    public get parent(): FileWatcher {
+    public get parent(): FileWatcher | undefined {
         return this._parent;
     }
 
