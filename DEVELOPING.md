@@ -1,12 +1,12 @@
 
 # Developing the Codewind Filewatchers
 
-## Building and testing the Java filewatcher
+## Building the Java filewatcher
 
 The Java filewatcher daemon is fully integrated into the [Codewind Eclipse](https://github.com/eclipse/codewind-eclipse#) codebase. To build and run Codewind Eclipse with this filewatcher, you only need to follow [the standard 'Developing Codewind Eclipse' instructions](https://github.com/eclipse/codewind-eclipse#developing-codewind-for-eclipse).
 
 
-## Building and testing the Go filewatcher
+## Building the Go filewatcher
 
 To build the Go filewatcher:
 ```
@@ -28,7 +28,7 @@ go build -race
 ```
 
 
-## Building and testing the Node filewatcher
+## Building the Node filewatcher and packaging it into VSCode
 
 If running on Windows, run `npm-package.sh` using [WSL](https://docs.microsoft.com/en-us/windows/wsl/about) or [MSYS2](https://www.msys2.org/).
 
@@ -56,6 +56,10 @@ npm install (path to `filewatcherd-(version).tar.gz` from step A)
 #### D) Launch VS Code
 
 Restart VS Code. Then, hit F5 to launch the debugger. It should build, compile, and start the Codewind VS Code extension. See [DEVELOPING.md](https://github.com/eclipse/codewind-vscode/blob/master/DEVELOPING.md) for additional information on launching a VS Code extension.
+
+# How to run the automated tests against the filewatchers 
+
+See the [specific page dedicated to running the automated tests](Tests/README.md).
 
 
 # How to view the Codewind Filewatchers logs
