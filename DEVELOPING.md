@@ -6,6 +6,28 @@
 The Java filewatcher daemon is fully integrated into the [Codewind Eclipse](https://github.com/eclipse/codewind-eclipse#) codebase. To build and run Codewind Eclipse with this filewatcher, you only need to follow [the standard 'Developing Codewind Eclipse' instructions](https://github.com/eclipse/codewind-eclipse#developing-codewind-for-eclipse).
 
 
+## Building and testing the Go filewatcher
+
+To build the Go filewatcher:
+```
+git clone https://github.com/eclipse/codewind-filewatchers/
+
+cd codewind-filewatchers/MockCwctlSync
+mvn package
+
+cd ../..
+cd Filewatcherd-Go
+
+# On Windows, use set rather than export
+export CODEWIND_URL_ROOT=http://localhost:9090
+export MOCK_CWCTL_INSTALLER_PATH=(path to MockCwctlSync directory above)/target/MockCwctlSync-0.0.1-SNAPSHOT.jar
+
+# Build, then run
+go build -race
+./codewind
+```
+
+
 ## Building and testing the Node filewatcher
 
 If running on Windows, run `npm-package.sh` using [WSL](https://docs.microsoft.com/en-us/windows/wsl/about) or [MSYS2](https://www.msys2.org/).
