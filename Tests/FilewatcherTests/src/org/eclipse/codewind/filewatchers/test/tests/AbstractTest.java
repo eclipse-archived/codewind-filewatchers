@@ -270,6 +270,14 @@ public class AbstractTest {
 		return fileToDelete;
 	}
 
+	void deleteFile(File f) {
+		boolean deleteResult = f.delete();
+
+		if (f.exists()) {
+			fail("File still exists after deletion:" + f.getName() + ", delete result was " + deleteResult);
+		}
+	}
+
 	void waitForWatcherSuccess(ProjectToWatchJson ptw) {
 
 		log.out("Waiting for watcher success: " + ptw.getProjectID() + " (" + ptw.getProjectWatchStateId() + ")");
@@ -551,6 +559,8 @@ public class AbstractTest {
 				fail("Some " + eventTypeParam.name() + " matches not found: " + matches + "/" + filesWaitingFor.size()
 						+ " Missing: " + missing);
 
+			} else {
+				System.out.println("Succcessfully matched " + matches + " files.");
 			}
 		});
 
