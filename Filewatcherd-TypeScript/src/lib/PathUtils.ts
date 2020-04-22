@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (c) 2019 IBM Corporation and others.
+* Copyright (c) 2019, 2020 IBM Corporation and others.
 * All rights reserved. This program and the accompanying materials
 * are made available under the terms of the Eclipse Public License v2.0
 * which accompanies this distribution, and is available at
@@ -178,7 +178,7 @@ export function stripTrailingSlash(str: string): string {
 // If pathToMonitor is: /home/user/codewind/project
 // and watchEventPath is: /home/user/codewind/project/some-file.txt
 // then this will convert watchEventPath to /some-file.txt
-export function convertAbsolutePathWithUnixSeparatorsToProjectRelativePath(path: string, rootPath: string): string  {
+export function convertAbsolutePathWithUnixSeparatorsToProjectRelativePath(path: string, rootPath: string): string | undefined  {
 
     if (rootPath.indexOf("\\") !== -1) {
         throw new Error("Forward slashes are not supported.");
@@ -189,15 +189,14 @@ export function convertAbsolutePathWithUnixSeparatorsToProjectRelativePath(path:
     if (!path.startsWith(rootPath)) {
         // This shouldn't happen, and is thus severe
         log.severe("Watch event '" + path + "' does not match project path '" + rootPath + "'");
-        return null;
+        return undefined;
     }
 
     path = path.replace(rootPath, "");
 
     if (path.length === 0) {
         // Ignore the empty case
-
-        return null;
+        return undefined;
     }
 
     return path;

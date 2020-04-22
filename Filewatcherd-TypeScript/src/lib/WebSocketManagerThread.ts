@@ -39,9 +39,9 @@ export class WebSocketManagerThread {
     private readonly _parent: FileWatcher;
 
     /** Maintains a reference to the previous websocket, to ensure it is closed when we open a new one */
-    private _previousWebSocket: WebSocket;
+    private _previousWebSocket: WebSocket | undefined;
 
-    private _previousWebSocketInterval: NodeJS.Timer;
+    private _previousWebSocketInterval: NodeJS.Timer | undefined;
 
     private _attemptingToEstablish = false;
 
@@ -51,8 +51,6 @@ export class WebSocketManagerThread {
         this._wsBaseUrl = wsBaseUrl;
         this._parent = parent;
 
-        this._previousWebSocket = null;
-        this._previousWebSocketInterval = null;
     }
 
     public queueEstablishConnection() {
@@ -112,12 +110,12 @@ export class WebSocketManagerThread {
 
             if (this._previousWebSocket) {
                 try { this._previousWebSocket.close(); } catch (e) { /* ignore*/ }
-                this._previousWebSocket = null;
+                this._previousWebSocket = undefined;
             }
 
             if (this._previousWebSocketInterval) {
                 clearInterval(this._previousWebSocketInterval);
-                this._previousWebSocketInterval = null;
+                this._previousWebSocketInterval = undefined;
             }
 
             this._attemptingToEstablish = true;
@@ -128,18 +126,19 @@ export class WebSocketManagerThread {
 
             let attemptNumber = 1;
 
-            let ws: WebSocket = null;
+            let lastWs : WebSocket | undefined
 
             while (!success && !this._disposed) {
                 log.info("Attempting to establish connection to web socket, attempt #" + attemptNumber);
 
-                let timer = null;
+                let timer : NodeJS.Timeout | undefined;
 
                 try {
-
-                    ws = new WebSocket(this._wsBaseUrl + "/websockets/file-changes/v1", {
+                    const ws = new WebSocket(this._wsBaseUrl + "/websockets/file-changes/v1", {
                         rejectUnauthorized: false,
                     });
+
+                    lastWs = ws;
 
                     const threadReference = this;
 
@@ -209,12 +208,22 @@ export class WebSocketManagerThread {
             } // end while
 
             if (success) {
-                this._previousWebSocket = ws;
+
+                if(!lastWs) {
+                    log.severe("Success should not be true if lastWs is undefined")
+                    return;
+                }
+
+                this._previousWebSocket = lastWs;
                 this._previousWebSocketInterval = setInterval(() => {
                     if (this._disposed) { return; }
 
-                    if (ws.readyState === ws.OPEN) {
-                        try { ws.send("{}"); } catch (e) { /* ignore*/ }
+                    if(!lastWs) {
+                        return;
+                    }
+
+                    if (lastWs.readyState === lastWs.OPEN) {
+                        try { lastWs.send("{}"); } catch (e) { /* ignore*/ }
                     }
                 }, WebSocketManagerThread.SEND_KEEPALIVE_EVERY_X_SECONDS * 1000);
 
@@ -250,7 +259,7 @@ export class WebSocketManagerThread {
             for (const e of wc.projects) {
                 const ptw: ProjectToWatchFromWebSocket = ProjectToWatchFromWebSocket.create(e);
                 projects.push(ptw);
-                infoStr += "[" + ptw.projectId + " in " + (ptw.pathToMonitor ? ptw.pathToMonitor : "N/A") + "], ";
+                infoStr += "[" + ptw.projectId + " in " + (ptw.optionalPathToMonitor() || "N/A") + "], ";
             }
             infoStr = infoStr.trim();
             infoStr = infoStr.substring(0, infoStr.length - 1); // strip the trailing comma

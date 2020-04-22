@@ -13,4 +13,4 @@ import clientns from "./client";
 
 /** This file will start the filewatcher when doing standalone development eg outside the VSCode integration scenario */
 
-clientns(process.env.CODEWIND_URL_ROOT, undefined, undefined, process.env.MOCK_CWCTL_INSTALLER_PATH);
+clientns(process.env.CODEWIND_URL_ROOT || "http://localhost:9090", process.env.MOCK_CWCTL_INSTALLER_PATH || "", undefined, undefined);

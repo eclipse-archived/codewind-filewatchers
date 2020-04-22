@@ -49,13 +49,13 @@ export class FileWatcher {
     private readonly _getStatusThread: HttpGetStatusThread;
 
     private readonly _internalWatchService: IWatchService;
-    private readonly _externalWatchService: IWatchService;
+    private readonly _externalWatchService: IWatchService | undefined;
 
     private readonly _webSocketManager: WebSocketManagerThread;
 
     private readonly _clientUuid: string;
 
-    private readonly _installerPath: string; // May be null
+    private readonly _installerPath: string;
 
     private readonly _authTokenWrapper: AuthTokenWrapper;
 
@@ -63,8 +63,8 @@ export class FileWatcher {
 
     private _individualFileWatchService: IndividualFileWatchService;
 
-    constructor(urlParam: string, internalWatchService: IWatchService, externalWatchService: IWatchService,
-                installerPath: string, clientUuid: string, authTokenProvider: IAuthTokenProvider) {
+    constructor(urlParam: string, internalWatchService: IWatchService, externalWatchService: IWatchService | undefined,
+                installerPath: string, clientUuid: string, authTokenProvider: IAuthTokenProvider | undefined) {
 
         this._clientUuid = clientUuid;
         this._installerPath = installerPath;
@@ -100,7 +100,7 @@ export class FileWatcher {
         this._webSocketManager = new WebSocketManagerThread(this._wsBaseUrl, this);
         this._webSocketManager.queueEstablishConnection();
 
-        const debugTimer = new DebugTimer(this);
+        new DebugTimer(this).schedule();
     }
 
     public updateFileWatchStateFromGetRequest(projectsToWatch: ProjectToWatch[]) {
@@ -124,7 +124,7 @@ export class FileWatcher {
 
         // For each of the projects in the local state map, if they aren't found
         // in the HTTP GET result, then they have been removed.
-        for (const [_, value] of this._projectsMap) {
+        for (const [, value] of this._projectsMap) {
             if (!projectIdInHttpResult.has(value.projectToWatch.projectId)) {
                 removedProjects.push(value.projectToWatch);
             }
@@ -147,7 +147,7 @@ export class FileWatcher {
 
         let projectsToWatch = new Array<ProjectToWatch>();
 
-        for (const [key, value] of this._projectsMap) {
+        for (const [, value] of this._projectsMap) {
             if (value) {
                 projectsToWatch.push(value.projectToWatch);
             }
@@ -164,7 +164,7 @@ export class FileWatcher {
         // This will be the absolute path on the local drive
         const fullLocalPath: string = watchEntry.absolutePathWithUnixSeparators;
 
-        let match: ProjectToWatch = null;
+        let match: ProjectToWatch | undefined;
 
         for (const ptw of projectsToWatch) {
 
@@ -540,7 +540,7 @@ export class FileWatcher {
                 const pctOldProjectToWatch = oldProjectToWatch.projectCreationTimeInAbsoluteMsecs;
                 const pctNewProjectToWatch = ptw.projectCreationTimeInAbsoluteMsecs;
 
-                let newPct = null;
+                let newPct : number | undefined;
 
                 // If both the old and new values are not null, but the value has changed, then
                 // use the new value.
@@ -591,14 +591,14 @@ export class FileWatcher {
                 // new.
                 if (!pctOldProjectToWatch && pctNewProjectToWatch) {
                     newPct = pctNewProjectToWatch;
-                    const newTimeInDate = newPct != null ? new Date(newPct).toString() : "";
+                    const newTimeInDate = newPct ? new Date(newPct).toString() : "";
                     log.info("The project creation time has changed. Old: " + pctOldProjectToWatch + " New: "
                         + pctNewProjectToWatch + "(" + newTimeInDate + "), for project " + ptw.projectId);
 
                     pctUpdated = true;
                 }
 
-                if (pctUpdated) {
+                if (pctUpdated && newPct) {
                     // Update the object itself, in case the if-branch below this one is executed.
 
                     if (ptw instanceof ProjectToWatchFromWebSocket) {
@@ -680,7 +680,6 @@ export class FileWatcher {
 
     }
 
-    /** May return null if the installer path is not defined. */
     public get installerPath(): string {
         return this._installerPath;
     }

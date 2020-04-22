@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (c) 2019 IBM Corporation and others.
+* Copyright (c) 2019, 2020 IBM Corporation and others.
 * All rights reserved. This program and the accompanying materials
 * are made available under the terms of the Eclipse Public License v2.0
 * which accompanies this distribution, and is available at
@@ -30,29 +30,23 @@ export class ProjectToWatchFromWebSocket extends ProjectToWatch {
                                                            projectCreationTimeInAbsoluteMsecsParam: number)
         : ProjectToWatchFromWebSocket {
 
-        const result = new ProjectToWatchFromWebSocket();
+        const result = new ProjectToWatchFromWebSocket(old._changeType);
 
         ProjectToWatch.copyWithNewProjectCreationTime(result, old, projectCreationTimeInAbsoluteMsecsParam);
-
-        result._changeType = old._changeType;
-
         return result;
     }
 
     public static create(json: models.IWatchedProjectJson): ProjectToWatchFromWebSocket {
-        const result = new ProjectToWatchFromWebSocket();
+        const result = new ProjectToWatchFromWebSocket(json.changeType);
         ProjectToWatch.innerCreateFromJson(result, json, json.changeType.toLowerCase() === "delete");
-        result._changeType = json.changeType;
 
         return result;
     }
 
     private _changeType: string;
 
-    protected constructor() {
-        // json: models.IWatchedProjectJson
+    protected constructor(changeType : string) {
         super();
-        // super(json, json.changeType.toLowerCase() === "delete");
-        // this._changeType = json.changeType;
+        this._changeType = changeType;
     }
 }

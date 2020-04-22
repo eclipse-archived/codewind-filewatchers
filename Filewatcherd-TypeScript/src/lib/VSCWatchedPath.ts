@@ -1,3 +1,15 @@
+
+/*******************************************************************************
+* Copyright (c) 2019, 2020 IBM Corporation and others.
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v2.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v20.html
+*
+* Contributors:
+*     IBM Corporation - initial API and implementation
+*******************************************************************************/
+
 import { PathFilter } from "./PathFilter";
 import * as pathutils from "./PathUtils";
 import { ProjectToWatch } from "./ProjectToWatch";
@@ -33,7 +45,11 @@ export class VSCWatchedPath {
 
         this._pathRoot = pathRoot;
 
-        this._parent.parent.sendWatchResponseAsync(true, ptw);
+        if(this._parent.parent) {
+            this._parent.parent.sendWatchResponseAsync(true, ptw);
+        } else {
+            throw new Error("VSCWatchedPath's watch service parent reference is invalid.");
+        }
 
     }
     public receiveFileChanges(entries: WatchEventEntry[]) {

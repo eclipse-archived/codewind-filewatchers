@@ -310,7 +310,7 @@ public class FilewatcherTests extends AbstractTest {
 		waitForEventsFromFileList(files, EventType.CREATE, p1);
 
 		for (File f : files) {
-			f.delete();
+			deleteFile(f);
 			optionalArtificialDelay();
 		}
 		waitForEventsFromFileList(files, EventType.DELETE, p1);

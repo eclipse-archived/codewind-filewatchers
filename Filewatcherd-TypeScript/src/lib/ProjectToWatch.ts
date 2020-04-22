@@ -24,11 +24,27 @@ import * as PathUtils from "./PathUtils";
  */
 export class ProjectToWatch {
 
-    public get projectId(): string {
-        return this._projectId;
+    public get pathToMonitor(): string {
+        // While it's possible for _pathToMonitor to be null (in the very narrow WebSocket case), in the vast
+        // majority of cases it will never be null; anything that calls the getter should
+        // expect that it won't be. See 'optionalPathToMonitor' to get the actual value.
+        if (!this._pathToMonitor) {
+            throw new Error("pathToMonitor field id is null: " + this);
+        }
+
+        return this._pathToMonitor as string;
     }
 
-    public get pathToMonitor(): string {
+    public get projectId(): string {
+
+        // See pathToMonitor() comment; the same applies here.
+        if (!this._projectId) {
+            throw new Error("projectId field is null: " + this);
+        }
+        return this._projectId as string;
+    }
+
+    public optionalPathToMonitor() : string | undefined {
         return this._pathToMonitor;
     }
 
@@ -40,7 +56,7 @@ export class ProjectToWatch {
         return this._ignoredFilenames;
     }
 
-    public get projectWatchStateId(): string {
+    public get projectWatchStateId(): string | undefined {
         return this._projectWatchStateId;
     }
 
@@ -52,7 +68,7 @@ export class ProjectToWatch {
         return this._filesToWatch;
     }
 
-    public get projectCreationTimeInAbsoluteMsecs(): number {
+    public get projectCreationTimeInAbsoluteMsecs(): number | undefined {
         return this._projectCreationTimeInAbsoluteMsecs;
     }
 
@@ -68,7 +84,7 @@ export class ProjectToWatch {
      * but replace the projectCreationTimeInAbsoluteMsecs param
      */
     public static cloneWithNewProjectCreationTime(old: ProjectToWatch,
-                                                  projectCreationTimeInAbsoluteMsecsParam: number): ProjectToWatch {
+        projectCreationTimeInAbsoluteMsecsParam: number): ProjectToWatch {
 
         // if (old instanceof ProjectToWatchFromWebSocket) {
         //     // Sanity test
@@ -86,7 +102,7 @@ export class ProjectToWatch {
      * Called only by above method, and from ProjectToWatchFromWebSocket.
      */
     protected static copyWithNewProjectCreationTime(result: ProjectToWatch, old: ProjectToWatch,
-                                                    projectCreationTimeInAbsoluteMsecsParam: number) {
+        projectCreationTimeInAbsoluteMsecsParam: number) {
 
         result._external = old.external;
 
@@ -122,13 +138,13 @@ export class ProjectToWatch {
 
     /** Copy the values from the JSON object into the given ProjectToWatch. */
     protected static innerCreateFromJson(result: ProjectToWatch, json: models.IWatchedProjectJson,
-                                         deleteChangeType: boolean) {
+        deleteChangeType: boolean) {
 
         // Delete event from WebSocket only has these fields.
         if (deleteChangeType) {
             result._projectId = json.projectID;
-            result._pathToMonitor = null;
-            result._projectWatchStateId = null;
+            result._pathToMonitor = undefined;
+            result._projectWatchStateId = undefined;
             return;
         }
 
@@ -169,24 +185,29 @@ export class ProjectToWatch {
      * However, the fields are not read-only because we need multiple constructing methods.
      */
 
-    private _projectId: string;
-    private _pathToMonitor: string;
+    private _projectId: string | undefined;
 
-    private _ignoredPaths: string[];
-    private _ignoredFilenames: string[];
+    private _pathToMonitor: string | undefined;
 
-    private _projectWatchStateId: string;
+    private _ignoredPaths: string[] = [];
+    private _ignoredFilenames: string[] = [];
 
-    private _external: boolean;
+    private _projectWatchStateId: string | undefined;
 
-    private _filesToWatch: string[];
+    private _external: boolean = false;
+
+    private _filesToWatch: string[] = [];
 
     /** undefined if project time is not specified, a >0 value otherwise. */
-    private _projectCreationTimeInAbsoluteMsecs: number;
+    private _projectCreationTimeInAbsoluteMsecs: number | undefined;
 
     protected constructor() { }
 
     private validatePathToMonitor() {
+
+        if (!this._pathToMonitor) {
+            throw new Error("Path to monitor should be defiend: " + this._pathToMonitor)
+        }
 
         if (this._pathToMonitor.indexOf("\\") !== -1) {
             throw new Error(

@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (c) 2019 IBM Corporation and others.
+* Copyright (c) 2019, 2020 IBM Corporation and others.
 * All rights reserved. This program and the accompanying materials
 * are made available under the terms of the Eclipse Public License v2.0
 * which accompanies this distribution, and is available at
@@ -26,7 +26,7 @@ import { ProjectToWatch } from "./ProjectToWatch";
  */
 export class WatchService implements IWatchService {
 
-    private _parent: FileWatcher;
+    private _parent: FileWatcher | undefined;
 
     private readonly _watchedProjects: Map<string /* project id of watched project */, WatchedPath>;
 
@@ -80,7 +80,13 @@ export class WatchService implements IWatchService {
             log.info("Received event " + event.toString());
 
             const timeReceived = Math.round(new Date().getTime());
-            this._parent.receiveNewWatchEventEntry(event, timeReceived);
+
+            if(this._parent) {
+                this._parent.receiveNewWatchEventEntry(event, timeReceived);
+            } else {
+                log.severe("Watch server parent was null thus event could not be passed.")
+            }
+
         } catch (e) {
             log.severe("handleEvent caught an uncaught exception.", e);
         }
@@ -93,7 +99,7 @@ export class WatchService implements IWatchService {
 
         this._disposed = true;
 
-        for (const [_, value] of this._watchedProjects) {
+        for (const [, value] of this._watchedProjects) {
             value.dispose();
         }
     }
