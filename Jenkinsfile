@@ -173,7 +173,7 @@ spec:
 
                     sh '''
                         export SSH_HOST="genie.codewind@projects-storage.eclipse.org"
-                        export TARGET_DIR_PARENT="/home/data/httpd/download.eclipse.org/codewind/codewind-filewatcher-ts/${GIT_BRANCH}/"
+                        export TARGET_DIR_PARENT="/home/data/httpd/archive.eclipse.org/codewind/codewind-filewatcher-ts/${GIT_BRANCH}/"
                         export TARGET_DIR="${TARGET_DIR_PARENT}/${BUILD_ID}"
                         export LATEST_DIR="${TARGET_DIR_PARENT}/latest"
                         export ARTIFACT_NAME="$(basename "filewatcherd*.tar.gz")"
