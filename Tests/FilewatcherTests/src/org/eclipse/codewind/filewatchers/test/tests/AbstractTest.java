@@ -96,6 +96,7 @@ public class AbstractTest {
 		}
 
 		int filesToDeleteTotal = filesToDelete.size();
+		log.out("* Deleting " + filesToDeleteTotal + " files. ");
 
 		int attempts = 0;
 		while (filesToDelete.size() > 0 && attempts < 50) {
@@ -113,8 +114,10 @@ public class AbstractTest {
 			attempts++;
 		}
 
-		log.out("* Deleting " + filesToDeleteTotal + " files. ");
-
+		// Wait 10 seconds after a test run to allow cleanup operations in the
+		// filewatcher to occur (this causes issues when running on Jenkins due to
+		// presumed slower I/O vs a laptop SSD).
+		CodewindTestUtils.sleep(10 * 1000);
 	}
 
 	final PostRequestListFromWatcher changeList = CodewindTestState.getInstance().getChangeListFromWatcher();
