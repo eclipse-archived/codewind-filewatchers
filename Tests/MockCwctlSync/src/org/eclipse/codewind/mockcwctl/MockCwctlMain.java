@@ -201,7 +201,6 @@ public class MockCwctlMain {
 			for (String watchedFile : pwJson.getFilesToWatch()) {
 				Path watchedFilePath = Paths.get(watchedFile);
 				if (Files.exists(watchedFilePath)) {
-					System.out.println("added:" + watchedFilePath); // TODO: REMOVE
 					allFiles.add(new WalkEntry(watchedFilePath, Files.getLastModifiedTime(watchedFilePath).toMillis()));
 				}
 			}
@@ -429,9 +428,9 @@ public class MockCwctlMain {
 			try {
 				fe.setModification(Files.getLastModifiedTime(e.path).toMillis());
 			} catch (IOException e1) {
-				System.err.println("Exception on get modificiation - " + e1.getClass().getSimpleName() + ": "
-						+ e1.getMessage() + ". Ignoring file.");
-				return null;
+				System.err.println("Exception on get modification - " + e1.getClass().getSimpleName() + ": "
+						+ e1.getMessage() + ". Not updating the modification time.");
+				fe.setModification(e.modificationTime);
 			}
 			fe.setPath(e.path.toString());
 			return fe;
@@ -459,8 +458,6 @@ public class MockCwctlMain {
 			Files.list(curr).forEach(e -> {
 				try {
 
-					// TODO: REmove me
-					System.out.println("thing: " + e);
 					result.add(new WalkEntry(e, Files.getLastModifiedTime(e).toMillis()));
 				} catch (IOException e1) {
 					throw new RuntimeException(e1);

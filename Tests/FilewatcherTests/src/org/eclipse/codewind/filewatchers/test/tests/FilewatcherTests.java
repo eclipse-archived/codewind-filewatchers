@@ -309,11 +309,24 @@ public class FilewatcherTests extends AbstractTest {
 
 		waitForEventsFromFileList(files, EventType.CREATE, p1);
 
-		for (File f : files) {
-			deleteFile(f);
-			optionalArtificialDelay();
+		while (files.size() > 0) {
+
+			// Delete files 10 at a time
+			List<File> filesRemovedInIteration = new ArrayList<>();
+			int count = 10;
+			while (count > 0 && files.size() > 0) {
+				File f = files.remove(0);
+				filesRemovedInIteration.add(f);
+				deleteFile(f);
+				count--;
+			}
+
+			if (filesRemovedInIteration.size() > 0) {
+				waitForEventsFromFileList(filesRemovedInIteration, EventType.DELETE, p1);
+				optionalArtificialDelay();
+			}
+
 		}
-		waitForEventsFromFileList(files, EventType.DELETE, p1);
 
 		List<File> dirsToDelete = new ArrayList<>(excludeParentDirFromList(dirs, p1));
 		while (dirsToDelete.size() > 0) {
@@ -637,7 +650,7 @@ public class FilewatcherTests extends AbstractTest {
 
 			List<File> filesDeleted = new ArrayList<>();
 
-			while (fileListInProject.size() > 0 && filesDeleted.size() < 20) {
+			while (fileListInProject.size() > 0 && filesDeleted.size() < 10) {
 				Collections.shuffle(fileListInProject);
 				File fileToDelete = fileListInProject.remove(0);
 				filesDeleted.add(fileToDelete);
@@ -646,10 +659,11 @@ public class FilewatcherTests extends AbstractTest {
 					projectToFiles.remove(ptw.getProjectID());
 				}
 
-				assertTrue(fileToDelete.delete());
+				deleteFile(fileToDelete);
 			}
 
 			waitForEventsFromFileList(filesDeleted, EventType.DELETE, ptw);
+			optionalArtificialDelay();
 
 		}
 
