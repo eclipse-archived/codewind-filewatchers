@@ -356,24 +356,7 @@ public class AbstractTest {
 		Collections.shuffle(directories);
 
 		// Sort ascending by the number of / in the path
-		Collections.sort(directories, (a, b) -> {
-			int slashCountA = 0;
-			int slashCountB = 0;
-
-			for (int x = 0; x < a.getPath().length(); x++) {
-				if (a.getPath().charAt(x) == File.separator.charAt(0)) {
-					slashCountA++;
-				}
-			}
-
-			for (int x = 0; x < b.getPath().length(); x++) {
-				if (b.getPath().charAt(x) == File.separator.charAt(0)) {
-					slashCountB++;
-				}
-			}
-
-			return slashCountA - slashCountB;
-		});
+		sortDirectoriesAscendingBySlashes(directories);
 
 		for (File dir : directories) {
 			if (!dir.exists() && !dir.mkdirs()) {
@@ -410,6 +393,29 @@ public class AbstractTest {
 			}
 
 		}
+
+	}
+
+	/** Sort ascending by the number of / in the path */
+	void sortDirectoriesAscendingBySlashes(List<File> dirList) {
+		Collections.sort(dirList, (a, b) -> {
+			int slashCountA = 0;
+			int slashCountB = 0;
+
+			for (int x = 0; x < a.getPath().length(); x++) {
+				if (a.getPath().charAt(x) == File.separator.charAt(0)) {
+					slashCountA++;
+				}
+			}
+
+			for (int x = 0; x < b.getPath().length(); x++) {
+				if (b.getPath().charAt(x) == File.separator.charAt(0)) {
+					slashCountB++;
+				}
+			}
+
+			return slashCountA - slashCountB;
+		});
 
 	}
 

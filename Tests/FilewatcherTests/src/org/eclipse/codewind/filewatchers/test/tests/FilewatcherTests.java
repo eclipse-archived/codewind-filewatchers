@@ -329,20 +329,29 @@ public class FilewatcherTests extends AbstractTest {
 		}
 
 		List<File> dirsToDelete = new ArrayList<>(excludeParentDirFromList(dirs, p1));
+		sortDirectoriesAscendingBySlashes(dirsToDelete);
+		Collections.reverse(dirsToDelete); // Flip to descending by number of slashes
+
 		while (dirsToDelete.size() > 0) {
 
-			for (Iterator<File> it = dirsToDelete.iterator(); it.hasNext();) {
-				File f = it.next();
-				f.delete();
-				if (!f.exists()) {
+			// Delete at most 10 directories at a time
+			List<File> filesRemovedInIteration = new ArrayList<>();
+			for (Iterator<File> it = dirsToDelete.iterator(); it.hasNext() && filesRemovedInIteration.size() < 10;) {
+				File dir = it.next();
+				dir.delete();
+				if (!dir.exists()) {
+					filesRemovedInIteration.add(dir);
 					it.remove();
-					optionalArtificialDelay();
 				}
 			}
 
-		}
+			// After each set of 10, wait for them
+			if (filesRemovedInIteration.size() > 0) {
+				waitForEventsFromFileList(excludeParentDirFromList(filesRemovedInIteration, p1), EventType.DELETE, p1);
+				optionalArtificialDelay();
+			}
 
-		waitForEventsFromFileList(excludeParentDirFromList(dirs, p1), EventType.DELETE, p1);
+		}
 
 		boolean canDelete = p1.getLocalPathToMonitor().delete();
 		assertTrue(canDelete);
