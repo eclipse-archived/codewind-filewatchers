@@ -309,27 +309,49 @@ public class FilewatcherTests extends AbstractTest {
 
 		waitForEventsFromFileList(files, EventType.CREATE, p1);
 
-		for (File f : files) {
-			deleteFile(f);
-			optionalArtificialDelay();
-		}
-		waitForEventsFromFileList(files, EventType.DELETE, p1);
+		while (files.size() > 0) {
 
-		List<File> dirsToDelete = new ArrayList<>(excludeParentDirFromList(dirs, p1));
-		while (dirsToDelete.size() > 0) {
+			// Delete files 10 at a time
+			List<File> filesRemovedInIteration = new ArrayList<>();
+			int count = 10;
+			while (count > 0 && files.size() > 0) {
+				File f = files.remove(0);
+				filesRemovedInIteration.add(f);
+				deleteFile(f);
+				count--;
+			}
 
-			for (Iterator<File> it = dirsToDelete.iterator(); it.hasNext();) {
-				File f = it.next();
-				f.delete();
-				if (!f.exists()) {
-					it.remove();
-					optionalArtificialDelay();
-				}
+			if (filesRemovedInIteration.size() > 0) {
+				waitForEventsFromFileList(filesRemovedInIteration, EventType.DELETE, p1);
+				optionalArtificialDelay();
 			}
 
 		}
 
-		waitForEventsFromFileList(excludeParentDirFromList(dirs, p1), EventType.DELETE, p1);
+		List<File> dirsToDelete = new ArrayList<>(excludeParentDirFromList(dirs, p1));
+		sortDirectoriesAscendingBySlashes(dirsToDelete);
+		Collections.reverse(dirsToDelete); // Flip to descending by number of slashes
+
+		while (dirsToDelete.size() > 0) {
+
+			// Delete at most 10 directories at a time
+			List<File> filesRemovedInIteration = new ArrayList<>();
+			for (Iterator<File> it = dirsToDelete.iterator(); it.hasNext() && filesRemovedInIteration.size() < 10;) {
+				File dir = it.next();
+				dir.delete();
+				if (!dir.exists()) {
+					filesRemovedInIteration.add(dir);
+					it.remove();
+				}
+			}
+
+			// After each set of 10, wait for them
+			if (filesRemovedInIteration.size() > 0) {
+				waitForEventsFromFileList(excludeParentDirFromList(filesRemovedInIteration, p1), EventType.DELETE, p1);
+				optionalArtificialDelay();
+			}
+
+		}
 
 		boolean canDelete = p1.getLocalPathToMonitor().delete();
 		assertTrue(canDelete);
@@ -637,7 +659,7 @@ public class FilewatcherTests extends AbstractTest {
 
 			List<File> filesDeleted = new ArrayList<>();
 
-			while (fileListInProject.size() > 0 && filesDeleted.size() < 20) {
+			while (fileListInProject.size() > 0 && filesDeleted.size() < 10) {
 				Collections.shuffle(fileListInProject);
 				File fileToDelete = fileListInProject.remove(0);
 				filesDeleted.add(fileToDelete);
@@ -646,10 +668,11 @@ public class FilewatcherTests extends AbstractTest {
 					projectToFiles.remove(ptw.getProjectID());
 				}
 
-				assertTrue(fileToDelete.delete());
+				deleteFile(fileToDelete);
 			}
 
 			waitForEventsFromFileList(filesDeleted, EventType.DELETE, ptw);
+			optionalArtificialDelay();
 
 		}
 

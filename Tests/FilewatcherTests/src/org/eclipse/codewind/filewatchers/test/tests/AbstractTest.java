@@ -96,6 +96,7 @@ public class AbstractTest {
 		}
 
 		int filesToDeleteTotal = filesToDelete.size();
+		log.out("* Deleting " + filesToDeleteTotal + " files. ");
 
 		int attempts = 0;
 		while (filesToDelete.size() > 0 && attempts < 50) {
@@ -113,8 +114,10 @@ public class AbstractTest {
 			attempts++;
 		}
 
-		log.out("* Deleting " + filesToDeleteTotal + " files. ");
-
+		// Wait 10 seconds after a test run to allow cleanup operations in the
+		// filewatcher to occur (this causes issues when running on Jenkins due to
+		// presumed slower I/O vs a laptop SSD).
+		CodewindTestUtils.sleep(10 * 1000);
 	}
 
 	final PostRequestListFromWatcher changeList = CodewindTestState.getInstance().getChangeListFromWatcher();
@@ -353,24 +356,7 @@ public class AbstractTest {
 		Collections.shuffle(directories);
 
 		// Sort ascending by the number of / in the path
-		Collections.sort(directories, (a, b) -> {
-			int slashCountA = 0;
-			int slashCountB = 0;
-
-			for (int x = 0; x < a.getPath().length(); x++) {
-				if (a.getPath().charAt(x) == File.separator.charAt(0)) {
-					slashCountA++;
-				}
-			}
-
-			for (int x = 0; x < b.getPath().length(); x++) {
-				if (b.getPath().charAt(x) == File.separator.charAt(0)) {
-					slashCountB++;
-				}
-			}
-
-			return slashCountA - slashCountB;
-		});
+		sortDirectoriesAscendingBySlashes(directories);
 
 		for (File dir : directories) {
 			if (!dir.exists() && !dir.mkdirs()) {
@@ -407,6 +393,29 @@ public class AbstractTest {
 			}
 
 		}
+
+	}
+
+	/** Sort ascending by the number of / in the path */
+	void sortDirectoriesAscendingBySlashes(List<File> dirList) {
+		Collections.sort(dirList, (a, b) -> {
+			int slashCountA = 0;
+			int slashCountB = 0;
+
+			for (int x = 0; x < a.getPath().length(); x++) {
+				if (a.getPath().charAt(x) == File.separator.charAt(0)) {
+					slashCountA++;
+				}
+			}
+
+			for (int x = 0; x < b.getPath().length(); x++) {
+				if (b.getPath().charAt(x) == File.separator.charAt(0)) {
+					slashCountB++;
+				}
+			}
+
+			return slashCountA - slashCountB;
+		});
 
 	}
 
