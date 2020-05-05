@@ -180,7 +180,8 @@ export class HttpGetStatusThread {
 
             }
 
-            if (result && result.length > 0) {
+            // We pass 'result' even if it is empty, as an empty array implies previously watched projects are no longer watched.
+            if (result) {
                 this._parent.updateFileWatchStateFromGetRequest(result);
             }
 
