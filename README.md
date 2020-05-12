@@ -10,7 +10,7 @@ The intent of this service is to provide mechanism for clients, e.g. IDEs or Che
 
 ## Contributing
 We welcome submitting issues and contributions.
-1. [Submitting bugs](https://github.com/eclipse/codewind-filewatchers/issues)
+1. [Submitting bugs](https://github.com/eclipse/codewind/issues)
 2. [Contributing](CONTRIBUTING.md)
 
 ## Developing
