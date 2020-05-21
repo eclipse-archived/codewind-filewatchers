@@ -248,7 +248,7 @@ public class FilewatcherTests extends AbstractTest {
 
 		log.out("Creating in: " + p1.getLocalPathToMonitor());
 
-		buildRandomDirectoryStructure(200, 1f, 0, p1.getLocalPathToMonitor(), dirs, files);
+		buildRandomDirectoryStructure(100, 1f, 0, p1.getLocalPathToMonitor(), dirs, files);
 		createRandomDirectoryStructure(dirs, files);
 
 		assertTrue("There should not be any files created.", files.size() == 0);
@@ -300,7 +300,7 @@ public class FilewatcherTests extends AbstractTest {
 
 		log.out("Creating in: " + p1.getLocalPathToMonitor());
 
-		buildRandomDirectoryStructure(200, .33f, 0, p1.getLocalPathToMonitor(), dirs, files);
+		buildRandomDirectoryStructure(100, .20f, 0, p1.getLocalPathToMonitor(), dirs, files);
 		createRandomDirectoryStructure(dirs, files);
 
 		// Wait for all the new directories to be created (but ignore the root dir which

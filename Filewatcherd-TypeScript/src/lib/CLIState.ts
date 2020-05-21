@@ -120,7 +120,8 @@ export class CLIState {
 
             if (result) {
                 if (result.errorCode !== 0) {
-                    log.severe("Non-zero error code from installer: " + (result && result.output ? result.output : ""));
+                    // The stdout/stderr output will already have been printed, so we only output the error code here.
+                    log.severe("Non-zero error code from installer: " + result.errorCode)
                 } else {
                     // Success, so update the tiemstamp to the process start time.
                     this._timestamp = result.spawnTime.getTime();
@@ -161,7 +162,7 @@ export class CLIState {
                 "" + lastTimestamp];
         } else {
 
-            if(!debugPtw) {
+            if (!debugPtw) {
                 throw new Error("debugPtw ProjectToWatch object was not defined, but is required when debug is enabled");
             }
 
@@ -217,15 +218,16 @@ export class CLIState {
             child.stderr.on("data", (chunk) => { errStr += chunk.toString(); });
 
             child.on("close", (code: number | null) => {
+
                 if (code == null) {
                     // this happens in SIGTERM case, not sure what else may cause it
                     log.debug(`Installer 'project sync' did not exit normally`);
                 } else if (code !== 0) {
-                    log.error("Error running 'project sync' installer command " + errStr);
+                    log.error("Error running 'project sync' installer command: " + debugStr);
                     outStr = outStr || "No output";
-                    errStr = errStr || "Unknown error " + args.join(" ");
-                    log.error("Stdout:" + outStr);
-                    log.error("Stderr:" + errStr);
+                    errStr = errStr || "No output"
+                    log.error("- cwctl stdout: {{ " + outStr + " }}");
+                    log.error("- cwctl stderr: {{ " + errStr + " }} ");
 
                     const result: IRunProjectReturn = {
                         errorCode: code,
@@ -233,7 +235,7 @@ export class CLIState {
                         spawnTime,
                     };
 
-                    reject(result);
+                    resolve(result);
                 } else {
 
                     const result: IRunProjectReturn = {
@@ -243,7 +245,7 @@ export class CLIState {
                     };
 
                     log.info("Successfully ran installer command: " + debugStr);
-                    log.info("Output:" + outStr + errStr); // TODO: Convert to DEBUG once everything matures.
+                    log.info("- cwctl output: {{ " + outStr + errStr + " }}");
                     resolve(result);
                 }
             });
