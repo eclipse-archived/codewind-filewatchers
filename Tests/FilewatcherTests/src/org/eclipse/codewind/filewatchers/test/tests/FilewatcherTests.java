@@ -588,7 +588,7 @@ public class FilewatcherTests extends AbstractTest {
 
 		sendTestName();
 
-		int numProjectsToCreate = 10;
+		int numProjectsToCreate = 3;
 
 		___status___("Creating directory structure and projects");
 
@@ -676,6 +676,13 @@ public class FilewatcherTests extends AbstractTest {
 
 		}
 
+		watcherState.clearAllProjects();
+
+		if (System.getProperty("os.name").toLowerCase().contains("linux")) {
+			// When running on the Eclipse CI Kube cluster, the I/O required by this test
+			// causes issues with subsequent tests, so we delay here.
+			CodewindTestUtils.sleep(30 * 1000);
+		}
 	}
 
 	@Test
