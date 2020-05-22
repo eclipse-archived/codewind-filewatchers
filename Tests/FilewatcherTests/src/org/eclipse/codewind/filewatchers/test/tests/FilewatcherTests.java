@@ -248,7 +248,7 @@ public class FilewatcherTests extends AbstractTest {
 
 		log.out("Creating in: " + p1.getLocalPathToMonitor());
 
-		buildRandomDirectoryStructure(200, 1f, 0, p1.getLocalPathToMonitor(), dirs, files);
+		buildRandomDirectoryStructure(100, 1f, 0, p1.getLocalPathToMonitor(), dirs, files);
 		createRandomDirectoryStructure(dirs, files);
 
 		assertTrue("There should not be any files created.", files.size() == 0);
@@ -300,7 +300,7 @@ public class FilewatcherTests extends AbstractTest {
 
 		log.out("Creating in: " + p1.getLocalPathToMonitor());
 
-		buildRandomDirectoryStructure(200, .33f, 0, p1.getLocalPathToMonitor(), dirs, files);
+		buildRandomDirectoryStructure(100, .20f, 0, p1.getLocalPathToMonitor(), dirs, files);
 		createRandomDirectoryStructure(dirs, files);
 
 		// Wait for all the new directories to be created (but ignore the root dir which
@@ -588,7 +588,7 @@ public class FilewatcherTests extends AbstractTest {
 
 		sendTestName();
 
-		int numProjectsToCreate = 10;
+		int numProjectsToCreate = 3;
 
 		___status___("Creating directory structure and projects");
 
@@ -676,6 +676,13 @@ public class FilewatcherTests extends AbstractTest {
 
 		}
 
+		watcherState.clearAllProjects();
+
+		if (System.getProperty("os.name").toLowerCase().contains("linux")) {
+			// When running on the Eclipse CI Kube cluster, the I/O required by this test
+			// causes issues with subsequent tests, so we delay here.
+			CodewindTestUtils.sleep(30 * 1000);
+		}
 	}
 
 	@Test
