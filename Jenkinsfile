@@ -1,5 +1,29 @@
 #!groovy​
 
+// Preamble -------------------------------------------------------------------
+
+IS_MASTER_BRANCH = env.BRANCH_NAME == "master"
+IS_RELEASE_BRANCH = (env.BRANCH_NAME ==~ /\d+\.\d+\.\d+/)
+
+
+echo "Branch is ${env.BRANCH_NAME}"
+echo "Is master branch build ? ${IS_MASTER_BRANCH}"
+echo "Is release branch build ? ${IS_RELEASE_BRANCH}"
+
+// https://stackoverflow.com/a/44902622
+def CRON_STRING = ""
+// https://jenkins.io/doc/book/pipeline/syntax/#cron-syntax
+if (IS_MASTER_BRANCH) {
+    // Build daily between 0300-0559
+    CRON_STRING = "H H(3-5) * * *"
+} else {
+    // Delete me ASAP
+    CRON_STRING = "H */2 * * *"
+}
+
+
+// Pipeline -------------------------------------------------------------------
+
 pipeline {
     agent {
         kubernetes {
@@ -42,6 +66,12 @@ spec:
         skipStagesAfterUnstable()
     }
 
+
+    triggers {
+        cron(CRON_STRING)
+    }
+
+
     environment {
         // https://stackoverflow.com/a/43264045
         HOME="."
@@ -77,6 +107,9 @@ spec:
                 container("go") {
                     dir ("Tests") {
                         sh '''#!/usr/bin/env bash
+
+                            echo "TODO: Remove me: print env"
+                            printenv
 
                             set -euo pipefail
 

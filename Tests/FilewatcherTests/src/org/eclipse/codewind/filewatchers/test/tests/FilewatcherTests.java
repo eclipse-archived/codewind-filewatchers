@@ -248,7 +248,7 @@ public class FilewatcherTests extends AbstractTest {
 
 		log.out("Creating in: " + p1.getLocalPathToMonitor());
 
-		buildRandomDirectoryStructure(100, 1f, 0, p1.getLocalPathToMonitor(), dirs, files);
+		buildRandomDirectoryStructure(20, 1f, 0, p1.getLocalPathToMonitor(), dirs, files);
 		createRandomDirectoryStructure(dirs, files);
 
 		assertTrue("There should not be any files created.", files.size() == 0);
@@ -387,7 +387,9 @@ public class FilewatcherTests extends AbstractTest {
 
 		assertTrue("Root directory still exists after deletion", !p1.getLocalPathToMonitor().exists());
 
-		CodewindTestUtils.sleep(10 * 1000 * CHAOS_ENGINEERING_MULTIPLIER);
+		// We have no way to detect the success of the absence of an event, so we
+		// instead just wait.
+		CodewindTestUtils.sleep(20 * 1000 * CHAOS_ENGINEERING_MULTIPLIER);
 
 		changeList.clear();
 
@@ -471,7 +473,7 @@ public class FilewatcherTests extends AbstractTest {
 		watcherState.clearAllProjects();
 
 		boolean mkdirs = p1.getLocalPathToMonitor().mkdirs();
-		assertTrue(mkdirs);
+		assertTrue("Unable to mkdirs " + p1.getLocalPathToMonitor(), mkdirs);
 
 		serverControl = new ServerControl();
 		addDisposableResource(serverControl);
@@ -555,7 +557,8 @@ public class FilewatcherTests extends AbstractTest {
 				waitForWatcherSuccess(p1);
 
 				repeatForXMsecs(5000, () -> {
-					assertTrue(changeList.getAllChangedFileEntriesByProjectId(p1).size() == 0);
+					List<ChangedFileEntry> cfeList = changeList.getAllChangedFileEntriesByProjectId(p1);
+					assertTrue("Non-zero size of cfelist: " + cfeList, cfeList.size() == 0);
 				});
 
 				File fileToIgnore = dirToFilter == dir1 ? fileInDir1 : fileInDir2;
@@ -659,7 +662,7 @@ public class FilewatcherTests extends AbstractTest {
 
 			List<File> filesDeleted = new ArrayList<>();
 
-			while (fileListInProject.size() > 0 && filesDeleted.size() < 10) {
+			while (fileListInProject.size() > 0 && filesDeleted.size() < 20) {
 				Collections.shuffle(fileListInProject);
 				File fileToDelete = fileListInProject.remove(0);
 				filesDeleted.add(fileToDelete);
@@ -672,17 +675,11 @@ public class FilewatcherTests extends AbstractTest {
 			}
 
 			waitForEventsFromFileList(filesDeleted, EventType.DELETE, ptw);
-			optionalArtificialDelay();
+
+			CodewindTestUtils.sleep(CHAOS_ENGINEERING_MULTIPLIER * 10 * 1000);
 
 		}
 
-		watcherState.clearAllProjects();
-
-		if (System.getProperty("os.name").toLowerCase().contains("linux")) {
-			// When running on the Eclipse CI Kube cluster, the I/O required by this test
-			// causes issues with subsequent tests, so we delay here.
-			CodewindTestUtils.sleep(30 * 1000);
-		}
 	}
 
 	@Test
@@ -885,8 +882,6 @@ public class FilewatcherTests extends AbstractTest {
 			watcherState.addOrUpdateProject(p1);
 			waitForWatcherSuccess(p1);
 
-			___status___(count + ") Create file and wait for appropriate event response.");
-
 			changeList.clear();
 
 			File toCreate;
@@ -900,12 +895,14 @@ public class FilewatcherTests extends AbstractTest {
 			}
 
 			toCreate = new File(targetDir, "new-file.txt");
+			___status___(count + ") Create file '" + toCreate.getPath() + "' and wait for appropriate event response.");
 
 			createOrModifyFile(toCreate);
 
 			if (F4_targetIsFilteredOutAfterFilterChange) {
 				repeatForXMsecs(5 * 1000, () -> {
-					assertTrue(changeList.getAllChangedFileEntriesByProjectId(p1).size() == 0);
+					List<ChangedFileEntry> cfeList = changeList.getAllChangedFileEntriesByProjectId(p1);
+					assertTrue("cfeList was non-zero: " + cfeList, cfeList.size() == 0);
 				});
 
 			} else {
@@ -914,12 +911,13 @@ public class FilewatcherTests extends AbstractTest {
 
 			changeList.clear();
 
-			___status___(count + ") Modify file and wait for appropriate event response.");
+			___status___(count + ") Modify file '" + toCreate.getPath() + "' and wait for appropriate event response.");
 			createOrModifyFile(toCreate);
 
 			if (F4_targetIsFilteredOutAfterFilterChange) {
 				repeatForXMsecs(5 * 1000, () -> {
-					assertTrue(changeList.getAllChangedFileEntriesByProjectId(p1).size() == 0);
+					List<ChangedFileEntry> cfeList = changeList.getAllChangedFileEntriesByProjectId(p1);
+					assertTrue("cfeList was non-zero: " + cfeList, cfeList.size() == 0);
 				});
 
 			} else {

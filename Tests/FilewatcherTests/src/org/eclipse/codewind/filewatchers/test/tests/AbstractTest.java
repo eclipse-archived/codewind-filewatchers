@@ -79,6 +79,16 @@ public class AbstractTest {
 
 		sendDebugMessage("Test " + getTestName() + " completed.");
 
+		watcherState.clearAllProjects();
+
+		if (runningInJenkinsCI()) {
+			System.out.println("Waiting 30 seconds for filewatcher to respond to test cleanup.");
+
+			// When running on the Eclipse CI Kube cluster, the I/O required by this test
+			// causes issues with subsequent tests, so we delay here.
+			CodewindTestUtils.sleep(30 * 1000);
+		}
+
 		List<File> filesToDelete = new ArrayList<>();
 
 		synchronized (toDispose_synch) {
@@ -205,8 +215,12 @@ public class AbstractTest {
 
 	File createOrModifyFile(File f) {
 		try {
-			log.out("Modifying file: " + f.getPath());
 			boolean exists = f.exists();
+			if (exists) {
+				log.out("Test modifying file: " + f.getPath());
+			} else {
+				log.out("Test creating file: " + f.getPath());
+			}
 			FileWriter fw;
 			if (!f.getParentFile().exists()) {
 				fail("Parent does not exist: " + f.getParentFile().getPath());
@@ -292,7 +306,16 @@ public class AbstractTest {
 		log.out("Watcher success received: " + ptw.getProjectID() + " (" + ptw.getProjectWatchStateId() + ")");
 
 		log.out("Post-watch success sleep.");
-		CodewindTestUtils.sleep(CHAOS_ENGINEERING_MULTIPLIER * 5 * 1000);
+
+		if (runningInJenkinsCI()) {
+			// There is currently no way for us to accurate detect that our mocked 'cwctl
+			// project sync' command has run after a watch has started, so we must wait the
+			// maximum length of time it should take for a project sync to run (which on
+			// Eclipse Jenkins JIPP is currently rather high :| ).
+			CodewindTestUtils.sleep(CHAOS_ENGINEERING_MULTIPLIER * 20 * 1000);
+		} else {
+			CodewindTestUtils.sleep(CHAOS_ENGINEERING_MULTIPLIER * 5 * 1000);
+		}
 
 	}
 
@@ -362,7 +385,7 @@ public class AbstractTest {
 			if (!dir.exists() && !dir.mkdirs()) {
 				throw new RuntimeException("Unable to create directory: " + dir.getPath());
 			}
-			log.out("Created: " + dir);
+			log.out("Test created dir: " + dir);
 			addDisposableResource(dir);
 
 			if (overrideArtificialDelay != null) {
@@ -378,7 +401,7 @@ public class AbstractTest {
 			try {
 
 				Files.createFile(file.toPath());
-				log.out("Created: " + file);
+				log.out("Test created file: " + file);
 				addDisposableResource(file);
 
 				if (overrideArtificialDelay != null) {
@@ -662,5 +685,9 @@ public class AbstractTest {
 
 	interface ITestCondition {
 		public boolean isTrue();
+	}
+
+	static boolean runningInJenkinsCI() {
+		return System.getProperty("os.name").toLowerCase().contains("linux");
 	}
 }

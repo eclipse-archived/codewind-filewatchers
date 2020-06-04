@@ -21,6 +21,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -184,18 +185,38 @@ public class MockCwctlMain {
 
 		Files.createDirectories(tempDir);
 
-		List<FileEntry> deletedFilesOrFolders = previousState.getEntries().stream()
-				.filter(e -> !Files.exists(Paths.get(e.getPath()))).collect(Collectors.toList());
+		// =============================
 
-		// If the root project directory doesn't exist, record that as a deletion.
-		if (!Files.exists(Paths.get(projectPathParam))) {
-			FileEntry fe = new FileEntry();
-			fe.setDirectory(Files.isDirectory(Paths.get(projectPathParam)));
-			fe.setModification(System.currentTimeMillis());
-			fe.setPath(projectPath);
-			deletedFilesOrFolders.add(fe);
-		}
+//		List<FileEntry> deletedFilesOrFolders = previousState.getEntries().stream()
+//				.filter(e -> !Files.exists(Paths.get(e.getPath()))).collect(Collectors.toList());
+//
+//		// If the root project directory doesn't exist, record that as a deletion.
+//		if (!Files.exists(Paths.get(projectPathParam))) {
+//			FileEntry fe = new FileEntry();
+//			fe.setDirectory(Files.isDirectory(Paths.get(projectPathParam)));
+//			fe.setModification(System.currentTimeMillis());
+//			fe.setPath(projectPath);
+//			deletedFilesOrFolders.add(fe);
+//		}
+//
+//		List<WalkEntry> allFiles = walkDirectory(Paths.get(projectPathParam));
+//		{
+//			for (String watchedFile : pwJson.getFilesToWatch()) {
+//				Path watchedFilePath = Paths.get(watchedFile);
+//				if (Files.exists(watchedFilePath)) {
+//					allFiles.add(new WalkEntry(watchedFilePath, Files.getLastModifiedTime(watchedFilePath).toMillis()));
+//				}
+//			}
+//
+//			if (DEBUG) {
+//				allFiles.forEach(e -> System.out.println("af:" + e.path));
+//			}
+//
+//		}
 
+		// -----------------------
+
+		List<FileEntry> deletedFilesOrFolders;
 		List<WalkEntry> allFiles = walkDirectory(Paths.get(projectPathParam));
 		{
 			for (String watchedFile : pwJson.getFilesToWatch()) {
@@ -209,7 +230,36 @@ public class MockCwctlMain {
 				allFiles.forEach(e -> System.out.println("af:" + e.path));
 			}
 
+			HashSet<String> allFilesSet = new HashSet<String>();
+			allFiles.stream().forEach(path -> {
+				allFilesSet.add(path.path.toString());
+			});
+
+//			System.out.println("allFilesSet: " + allFilesSet);
+
+			deletedFilesOrFolders = previousState.getEntries().stream().filter(e -> {
+
+				boolean result = !allFilesSet.contains(e.getPath());
+//				System.out.println("! previous-state: " + e.getPath() + " " + result);
+				return result;
+
+			}).collect(Collectors.toList());
+
+//			deletedFilesOrFolders = previousState.getEntries().stream().filter(e -> !allFilesSet.contains(e.getPath()))
+//					.collect(Collectors.toList());
+
 		}
+
+		// If the root project directory doesn't exist, record that as a deletion.
+		if (!Files.exists(Paths.get(projectPathParam))) {
+			FileEntry fe = new FileEntry();
+			fe.setDirectory(Files.isDirectory(Paths.get(projectPathParam)));
+			fe.setModification(System.currentTimeMillis());
+			fe.setPath(projectPath);
+			deletedFilesOrFolders.add(fe);
+		}
+
+		// -----------------------
 
 		// If this is the first time project sync has run for this project, then just
 		// write the filesystem state and return.
@@ -353,13 +403,16 @@ public class MockCwctlMain {
 
 				for (String ignoredPathFilter : pwJson.getIgnoredPaths()) {
 					String filterText = ignoredPathFilter.replace("*", ".*");
-					System.out.println("filter: " + filterText);
+//					System.out.println("-----");
+//					System.out.println("filter: " + filterText);
 					Pattern p = Pattern.compile(filterText);
 
 					if (p.matcher(path).matches()) {
-						System.out.println("matched.");
+//						System.out.println("matched on " + path);
 						it.remove();
 						continue outer;
+					} else {
+//						System.out.println("did not match on " + path);
 					}
 
 				}
@@ -436,7 +489,11 @@ public class MockCwctlMain {
 			return fe;
 		}).filter(e -> e != null).collect(Collectors.toList()));
 
-		Files.write(previousStateJson, JsonbBuilder.create().toJson(pcj).getBytes());
+		String thing = JsonbBuilder.create().toJson(pcj);
+
+		System.out.println(new Date() + ") writeJsonDB writing: " + thing);
+
+		Files.write(previousStateJson, thing.getBytes());
 	}
 
 	private static List<WalkEntry> walkDirectory(Path directoryParam) throws IOException {

@@ -98,11 +98,11 @@ public class WatcherState {
 						.filter(e -> e.getProjectID().equals(project.getProjectID())).findAny().orElse(null);
 
 				if (match != null) {
-					projectsToWatch_synch_lock.put(project.getProjectID(), project);
+					projectsToWatch_synch_lock.put(project.getProjectID(), project.clone());
 					changed.add(project.clone());
 
 				} else {
-					projectsToWatch_synch_lock.put(project.getProjectID(), project);
+					projectsToWatch_synch_lock.put(project.getProjectID(), project.clone());
 					added.add(project.clone());
 				}
 
