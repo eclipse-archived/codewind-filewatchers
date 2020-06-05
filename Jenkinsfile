@@ -16,9 +16,6 @@ def CRON_STRING = ""
 if (IS_MASTER_BRANCH) {
     // Build daily between 0300-0559
     CRON_STRING = "H H(3-5) * * *"
-} else {
-    // Delete me ASAP
-    CRON_STRING = "H */2 * * *"
 }
 
 
@@ -107,9 +104,6 @@ spec:
                 container("go") {
                     dir ("Tests") {
                         sh '''#!/usr/bin/env bash
-
-                            echo "TODO: Remove me: print env"
-                            printenv
 
                             set -euo pipefail
 

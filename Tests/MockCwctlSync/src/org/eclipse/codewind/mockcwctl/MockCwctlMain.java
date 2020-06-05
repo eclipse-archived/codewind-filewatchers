@@ -185,37 +185,6 @@ public class MockCwctlMain {
 
 		Files.createDirectories(tempDir);
 
-		// =============================
-
-//		List<FileEntry> deletedFilesOrFolders = previousState.getEntries().stream()
-//				.filter(e -> !Files.exists(Paths.get(e.getPath()))).collect(Collectors.toList());
-//
-//		// If the root project directory doesn't exist, record that as a deletion.
-//		if (!Files.exists(Paths.get(projectPathParam))) {
-//			FileEntry fe = new FileEntry();
-//			fe.setDirectory(Files.isDirectory(Paths.get(projectPathParam)));
-//			fe.setModification(System.currentTimeMillis());
-//			fe.setPath(projectPath);
-//			deletedFilesOrFolders.add(fe);
-//		}
-//
-//		List<WalkEntry> allFiles = walkDirectory(Paths.get(projectPathParam));
-//		{
-//			for (String watchedFile : pwJson.getFilesToWatch()) {
-//				Path watchedFilePath = Paths.get(watchedFile);
-//				if (Files.exists(watchedFilePath)) {
-//					allFiles.add(new WalkEntry(watchedFilePath, Files.getLastModifiedTime(watchedFilePath).toMillis()));
-//				}
-//			}
-//
-//			if (DEBUG) {
-//				allFiles.forEach(e -> System.out.println("af:" + e.path));
-//			}
-//
-//		}
-
-		// -----------------------
-
 		List<FileEntry> deletedFilesOrFolders;
 		List<WalkEntry> allFiles = walkDirectory(Paths.get(projectPathParam));
 		{
@@ -235,18 +204,12 @@ public class MockCwctlMain {
 				allFilesSet.add(path.path.toString());
 			});
 
-//			System.out.println("allFilesSet: " + allFilesSet);
-
 			deletedFilesOrFolders = previousState.getEntries().stream().filter(e -> {
 
 				boolean result = !allFilesSet.contains(e.getPath());
-//				System.out.println("! previous-state: " + e.getPath() + " " + result);
 				return result;
 
 			}).collect(Collectors.toList());
-
-//			deletedFilesOrFolders = previousState.getEntries().stream().filter(e -> !allFilesSet.contains(e.getPath()))
-//					.collect(Collectors.toList());
 
 		}
 
@@ -403,16 +366,11 @@ public class MockCwctlMain {
 
 				for (String ignoredPathFilter : pwJson.getIgnoredPaths()) {
 					String filterText = ignoredPathFilter.replace("*", ".*");
-//					System.out.println("-----");
-//					System.out.println("filter: " + filterText);
 					Pattern p = Pattern.compile(filterText);
 
 					if (p.matcher(path).matches()) {
-//						System.out.println("matched on " + path);
 						it.remove();
 						continue outer;
-					} else {
-//						System.out.println("did not match on " + path);
 					}
 
 				}
@@ -421,10 +379,7 @@ public class MockCwctlMain {
 
 		}
 
-		{
-			postToURL(urlRoot, cfejList, projectId, requestTimestamp);
-
-		}
+		postToURL(urlRoot, cfejList, projectId, requestTimestamp);
 
 	}
 
