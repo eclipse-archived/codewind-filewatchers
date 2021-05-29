@@ -23,7 +23,7 @@
     "dependencies": {
         "chokidar": "~3.3.1",
         "got": "^10.6.0",
-        "ws": "^6.2.1"
+        "ws": "^7.4.6"
     },
     "devDependencies": {
         "@types/node": "^10.12.1",
