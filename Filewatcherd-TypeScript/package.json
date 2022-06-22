@@ -22,7 +22,7 @@
     },
     "dependencies": {
         "chokidar": "~3.3.1",
-        "got": "^10.6.0",
+        "got": "^11.8.5",
         "ws": "^6.2.1"
     },
     "devDependencies": {
